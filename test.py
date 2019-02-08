@@ -1,11 +1,11 @@
-def a():
-     f = open('./kss/transcript.txt', 'r')
-     ff = open('./kss/metadata.txt', 'w')
+#-*- coding: utf-8 -*-
 
-     for i in f.readlines():
-          a = i.split('|')
-          b = a[0].split('/')[1].replace('.wav', '') + '|' + a[1] + '|' + a[2] + '\n'
-          ff.write(b)
+from tacotron.utils.symbols import symbols
 
-import numpy as np
-print(np.log10(1))
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
+a = '한글'
+print repr(list(a)).decode('string-escape')
+

@@ -7,7 +7,7 @@ hparams = tf.contrib.training.HParams(
 	# text, you may want to use "basic_cleaners" or "transliteration_cleaners".
 	cleaners='english_cleaners',
 
-
+    tacotron_gpu_start_idx = 0,
 	#If you only have 1 GPU or want to use only one GPU, please set num_gpus=0 and specify the GPU idx on run. example:
 		#expample 1 GPU of index 2 (train on "/gpu2" only): CUDA_VISIBLE_DEVICES=2 python train.py --model='Tacotron' --hparams='tacotron_gpu_start_idx=2'
 	#If you want to train on multiple GPUs, simply specify the number of GPUs available, and the idx of the first GPU to use. example:
@@ -184,7 +184,7 @@ hparams = tf.contrib.training.HParams(
 	# discretized mixture of logistic distributions output, otherwise one-hot
 	# input and softmax output are assumed.
 	#Model general type
-	input_type="mulaw-quantize", #Raw has better quality but harder to train. mulaw-quantize is easier to train but has lower quality.
+	input_type="raw", #Raw has better quality but harder to train. mulaw-quantize is easier to train but has lower quality.
 	quantize_channels=2**16,  # 65536 (16-bit) (raw) or 256 (8-bit) (mulaw or mulaw-quantize) // number of classes = 256 <=> mu = 255
 	use_bias = True, #Whether to use bias in convolutional layers of the Wavenet
 	legacy = True, #Whether to use legacy mode: Multiply all skip outputs but the first one with sqrt(0.5) (True for more early training stability, especially for large models)
