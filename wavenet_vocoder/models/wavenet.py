@@ -5,7 +5,6 @@ from infolog import log
 from wavenet_vocoder import util
 from wavenet_vocoder.util import *
 
-from __future__ import print_function
 from .gaussian import sample_from_gaussian
 from .mixture import sample_from_discretized_mix_logistic
 from .modules import (Conv1D1x1, ConvTranspose2D, ConvTranspose1D, ResizeConvolution, SubPixelConvolution, NearestNeighborUpsample, DiscretizedMixtureLogisticLoss, 
