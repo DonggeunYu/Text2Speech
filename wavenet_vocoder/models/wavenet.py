@@ -5,6 +5,7 @@ from infolog import log
 from wavenet_vocoder import util
 from wavenet_vocoder.util import *
 
+from __future__ import print_function
 from .gaussian import sample_from_gaussian
 from .mixture import sample_from_discretized_mix_logistic
 from .modules import (Conv1D1x1, ConvTranspose2D, ConvTranspose1D, ResizeConvolution, SubPixelConvolution, NearestNeighborUpsample, DiscretizedMixtureLogisticLoss, 
@@ -877,7 +878,7 @@ class WaveNet():
 			if test_inputs is not None:
 				next_input = tf.expand_dims(test_inputs[:, time, :], axis=1)
 
-			time = tf.Print(time + 1, [time+1, time_length])
+			time = tf.print(time + 1, [time+1, time_length])
 			#output = x (maybe next input)
 			# if test_inputs is not None:
 			# 	#override next_input with ground truth
