@@ -877,7 +877,7 @@ class WaveNet():
 			if test_inputs is not None:
 				next_input = tf.expand_dims(test_inputs[:, time, :], axis=1)
 
-			time = tf.print(time + 1, [time+1, time_length])
+			time = tf.Print(time + 1, [time+1, time_length])
 			#output = x (maybe next input)
 			# if test_inputs is not None:
 			# 	#override next_input with ground truth
