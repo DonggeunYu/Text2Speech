@@ -174,6 +174,9 @@ audio mel spectrogram로 그램 사이의 시간 해상도를 조절한다.
 .npy 확장자를 사용하여 audio, mel spectrogram, linear spectrogram을 저장한다.
 
 
+## Model
+![](https://github.com/Yudonggeun/Text2Speech/blob/master/images/model%20graph.png?raw=true)
+
 
 ## References and Resources
 
