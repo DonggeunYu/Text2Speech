@@ -1,3 +1,6 @@
-from __future__ import print_function
+import tensorflow as tf
 
-tf.pri
+def abc(a, b):
+    print(a, b)
+lin = 1
+a = tf.py_func(abc, [[1, 2, 3], ['a', 'b', 'c']], lin)

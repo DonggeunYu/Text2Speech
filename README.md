@@ -177,6 +177,9 @@ audio mel spectrogram로 그램 사이의 시간 해상도를 조절한다.
 
 ## References and Resources
 
+#### Blog
+[Tacotron2 voice synthesis model explanation & experiments](https://link.medium.com/ktNTQh6lfU)
+
 #### GitHub
 
 - [Rayhane-mamah/Tacotron-2](https://github.com/Rayhane-mamah/Tacotron-2)
