@@ -175,7 +175,7 @@ audio mel spectrogram로 그램 사이의 시간 해상도를 조절한다.
 
 
 ## Model
-![](https://github.com/Yudonggeun/Text2Speech/blob/master/images/model%20graph.png?raw=true)
+![](https://github.com/Yudonggeun/Text2Speech/blob/master/images/model_graph.png?raw=true)
 
 
 ## References and Resources
