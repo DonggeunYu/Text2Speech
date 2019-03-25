@@ -1,3 +1,4 @@
 datasets/kss/
 training_data/
 data/
+logdir-tacotron/

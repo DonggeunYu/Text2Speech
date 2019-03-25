@@ -3,13 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="a1f0317d-52d3-4fe4-83fe-2b26b002e289" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/datasets/datafeeder_tacotron.py" beforeDir="false" afterPath="$PROJECT_DIR$/datasets/datafeeder_tacotron.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/datasets/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/datasets/test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hparams.py" beforeDir="false" afterPath="$PROJECT_DIR$/hparams.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tacotron/modules.py" beforeDir="false" afterPath="$PROJECT_DIR$/tacotron/modules.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tacotron/tacotron.py" beforeDir="false" afterPath="$PROJECT_DIR$/tacotron/tacotron.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/train_tacotron.py" beforeDir="false" afterPath="$PROJECT_DIR$/train_tacotron.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -72,7 +65,7 @@
                   </provider>
                 </entry>
               </file>
-              <file pinned="false" current-in-tab="true">
+              <file pinned="false" current-in-tab="false">
                 <entry file="file://$PROJECT_DIR$/hparams.py">
                   <provider selected="true" editor-type-id="text-editor">
                     <state relative-caret-position="398">
@@ -80,6 +73,15 @@
                       <folding>
                         <element signature="e#25#48#0" expanded="true" />
                       </folding>
+                    </state>
+                  </provider>
+                </entry>
+              </file>
+              <file pinned="false" current-in-tab="true">
+                <entry file="file://$PROJECT_DIR$/.gitignore">
+                  <provider selected="true" editor-type-id="text-editor">
+                    <state relative-caret-position="45">
+                      <caret line="3" column="16" selection-start-line="3" selection-start-column="16" selection-end-line="3" selection-end-column="16" />
                     </state>
                   </provider>
                 </entry>
@@ -387,12 +389,12 @@
       <workItem from="1553134136958" duration="3611000" />
       <workItem from="1553174479121" duration="5387000" />
       <workItem from="1553252491222" duration="24701000" />
-      <workItem from="1553500126277" duration="2297000" />
+      <workItem from="1553500126277" duration="2354000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="81804000" />
+    <option name="totallyTimeSpent" value="81861000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1680" height="1050" extended-state="6" />
@@ -725,13 +727,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/.gitignore">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="30">
-          <caret line="2" column="5" lean-forward="true" selection-start-line="2" selection-start-column="5" selection-end-line="2" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/hparams.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="398">
@@ -739,6 +734,13 @@
           <folding>
             <element signature="e#25#48#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="45">
+          <caret line="3" column="16" selection-start-line="3" selection-start-column="16" selection-end-line="3" selection-end-column="16" />
         </state>
       </provider>
     </entry>
