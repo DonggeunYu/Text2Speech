@@ -31,8 +31,7 @@ def cbhg(inputs, input_lengths, is_training, bank_size, bank_channel_size, maxpo
             # Convolution bank: concatenate on the last axis
             # to stack channels from all convolutions
             conv_fn = lambda k: conv1d(inputs, k, bank_channel_size, tf.nn.relu, is_training, 'conv1d_%d' % k)  # bank_channel_size =128
-
-            conv_outputs = tf.concat( [conv_fn(k) for k in range(1, bank_size+1)], axis=-1,)  # ==> (N,T_in,128*bank_size)
+            conv_outputs = tf.concat([conv_fn(k) for k in range(1, bank_size+1)], axis=-1,)  # ==> (N,T_in,128*bank_size)
 
         # Maxpooling:
         maxpool_output = tf.layers.max_pooling1d(conv_outputs,pool_size=maxpool_width,strides=1,padding='same')  # maxpool_width = 2
@@ -41,7 +40,7 @@ def cbhg(inputs, input_lengths, is_training, bank_size, bank_channel_size, maxpo
         proj_out = maxpool_output
         for idx, proj_size in enumerate(proj_sizes):   # [f(128), f(128)],  post: [f(256), f(80)]
             activation_fn = None if idx == len(proj_sizes) - 1 else tf.nn.relu
-            proj_out = conv1d(proj_out, proj_width, proj_size, activation_fn,is_training, 'proj_{}'.format(idx + 1))  # proj_width = 3
+            proj_out = conv1d(proj_out, proj_width, proj_size, activation_fn, is_training, 'proj_{}'.format(idx + 1))  # proj_width = 3
 
         # Residual connection:
         if before_highway is not None: # multi-sperker mode
@@ -61,7 +60,6 @@ def cbhg(inputs, input_lengths, is_training, bank_size, bank_channel_size, maxpo
             highway_input = highwaynet(highway_input, 'highway_%d' % (idx+1))
 
         rnn_input = highway_input
-
         # Bidirectional RNN
         if encoder_rnn_init_state is not None:
             initial_state_fw, initial_state_bw = tf.split(encoder_rnn_init_state, 2, 1)
@@ -84,8 +82,8 @@ def highwaynet(inputs, scope):
     highway_dim = int(inputs.get_shape()[-1])
 
     with tf.variable_scope(scope):
-        H = tf.layers.dense(inputs,units=highway_dim, activation=tf.nn.relu,name='H')
-        T = tf.layers.dense(inputs,units=highway_dim, activation=tf.nn.sigmoid,name='T',bias_initializer=tf.constant_initializer(-1.0))
+        H = tf.layers.dense(inputs,units=highway_dim, activation=tf.nn.relu, name='H')
+        T = tf.layers.dense(inputs,units=highway_dim, activation=tf.nn.sigmoid, name='T',bias_initializer=tf.constant_initializer(-1.0))
         return H * T + inputs * (1.0 - T)
 
 

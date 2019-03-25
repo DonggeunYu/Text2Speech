@@ -31,13 +31,11 @@ def get_path_dict(data_dirs, hparams, config,data_type, n_test=None,rng=np.rando
     path_dict = {}
     for data_dir in data_dirs:  # ['datasets/moon\\data']
         paths = glob("{}/*.npz".format(data_dir)) # ['datasets/moon\\data\\001.0000.npz', 'datasets/moon\\data\\001.0001.npz', 'datasets/moon\\data\\001.0002.npz', ...]
-
         if data_type == 'train':
             rng.shuffle(paths)  # ['datasets/moon\\data\\012.0287.npz', 'datasets/moon\\data\\004.0215.npz', 'datasets/moon\\data\\003.0149.npz', ...]
 
         if not config.skip_path_filter:
             items = parallel_run( get_frame, paths, desc="filter_by_min_max_frame_batch", parallel=True)  # [('datasets/moon\\data\\012.0287.npz', 130, 21), ('datasets/moon\\data\\003.0149.npz', 209, 37), ...]
-
             min_n_frame = hparams.reduction_factor * hparams.min_iters   # 5*30
             max_n_frame = hparams.reduction_factor * hparams.max_iters - hparams.reduction_factor  # 5*200 - 5
             
@@ -75,9 +73,8 @@ def get_path_dict(data_dirs, hparams, config,data_type, n_test=None,rng=np.rando
 class DataFeederTacotron(threading.Thread):
     '''Feeds batches of data into a queue on a background thread.'''
 
-    def __init__(self, coordinator, data_dirs,hparams, config, batches_per_group, data_type, batch_size):  #batches_per_group = 32 or 8,  data_type: 'train' or 'test'
+    def __init__(self, coordinator, data_dirs, hparams, config, batches_per_group, data_type, batch_size):  #batches_per_group = 32 or 8,  data_type: 'train' or 'test'
         super(DataFeederTacotron, self).__init__()
-
         self._coord = coordinator
         self._hp = hparams
         self._cleaner_names = [x.strip() for x in hparams.cleaners.split(',')]
@@ -93,10 +90,8 @@ class DataFeederTacotron(threading.Thread):
         self.min_n_frame = hparams.reduction_factor * hparams.min_iters   # 5*30
         self.max_n_frame = hparams.reduction_factor * hparams.max_iters - hparams.reduction_factor  # 5*200 - 5
         self.skip_path_filter = config.skip_path_filter
-
         # Load metadata:
         self.path_dict = get_path_dict(data_dirs, self._hp, config, self.data_type,n_test=self.batch_size, rng=self.rng) # data_dirs: ['datasets/moon\\data']
-
         self.data_dirs = list(self.path_dict.keys()) # ['datasets/moon\\data']
         self.data_dir_to_id = {data_dir: idx for idx, data_dir in enumerate(self.data_dirs)}  # {'datasets/moon\\data': 0}
 
@@ -131,11 +126,10 @@ class DataFeederTacotron(threading.Thread):
 
         # Create queue for buffering data:
         dtypes = [tf.int32, tf.int32, tf.float32, tf.float32, tf.float32]
-
         self.is_multi_speaker = len(self.data_dirs) > 1
 
         if self.is_multi_speaker:
-            self._placeholders.append( tf.placeholder(tf.int32, [None], 'speaker_id'),)     # speaker_id 추가  'inputs'  --> 'speaker_id'로 바꿔야 하지 않나??
+            self._placeholders.append(tf.placeholder(tf.int32, [None], 'speaker_id'))
             dtypes.append(tf.int32)
 
         num_worker = 8 if self.data_type == 'train' else 1
@@ -183,6 +177,7 @@ class DataFeederTacotron(threading.Thread):
 
 
     def run(self):
+        print('a')
         try:
             while not self._coord.should_stop():
                 self._enqueue_next_group()
@@ -274,7 +269,6 @@ def _prepare_batch(batch, reduction_factor, rng, data_type=None):
     inputs = _prepare_inputs([x[0] for x in batch])  # batch에 있는 data들 중, 가장 긴 data의 길이에 맞게 padding한다.
     input_lengths = np.asarray([len(x[0]) for x in batch], dtype=np.int32)  # batch_size, [37, 37, 32, 32, 38,..., 39, 36, 30]
     loss_coeff = np.asarray([x[1] for x in batch], dtype=np.float32)   # batch_size, [1,1,1,,..., 1,1,1]
-
     mel_targets = _prepare_targets([x[2] for x in batch], reduction_factor)  # ---> (32, 175, 80) max length는 reduction_factor의  배수가 되도록
     linear_targets = _prepare_targets([x[3] for x in batch], reduction_factor)  # ---> (32, 175, 1025)  max length는 reduction_factor의  배수가 되도록
 

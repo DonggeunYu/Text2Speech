@@ -135,15 +135,14 @@ def train(log_dir, config):
         # DataFeeder의 6개 placeholder: train_feeder.inputs, train_feeder.input_lengths, train_feeder.loss_coeff, train_feeder.mel_targets, train_feeder.linear_targets, train_feeder.speaker_id
         train_feeder = DataFeederTacotron(coord, data_dirs, hparams, config, 32,data_type='train', batch_size=config.batch_size)
         test_feeder = DataFeederTacotron(coord, data_dirs, hparams, config, 8, data_type='test', batch_size=config.num_test)
-
     # Set up model:
     is_randomly_initialized = config.initialize_path is None
     global_step = tf.Variable(0, name='global_step', trainable=False)
 
     with tf.variable_scope('model') as scope:
         model = create_model(hparams)
-        model.initialize(train_feeder.inputs, train_feeder.input_lengths,num_speakers,  train_feeder.speaker_id,train_feeder.mel_targets, train_feeder.linear_targets,
-                         train_feeder.loss_coeff,is_randomly_initialized=is_randomly_initialized)
+        model.initialize(train_feeder.inputs, train_feeder.input_lengths, num_speakers,  train_feeder.speaker_id,train_feeder.mel_targets, train_feeder.linear_targets,
+                         train_feeder.loss_coeff, is_randomly_initialized=is_randomly_initialized)
 
         model.add_loss()
         model.add_optimizer(global_step)
@@ -166,7 +165,6 @@ def train(log_dir, config):
 
     sess_config = tf.ConfigProto(log_device_placement=False,allow_soft_placement=True)
     sess_config.gpu_options.allow_growth=True
-
     # Train!
     #with tf.Session(config=sess_config) as sess:
     with tf.Session() as sess:
@@ -258,7 +256,7 @@ def main():
 
     parser.add_argument('--log_dir', default='logdir-tacotron')
     
-    parser.add_argument('--data_paths', default='.\\data\\moon,.\\data\\son')
+    parser.add_argument('--data_paths', default='./data/kss') #.\\data\\moon,.\\data\\son
     
     
     parser.add_argument('--load_path', default=None)   # 아래의 'initialize_path'보다 우선 적용

@@ -49,13 +49,11 @@ class Tacotron():
 
             # Embeddings(256)
             char_embed_table = tf.get_variable('embedding', [len(symbols), hp.embedding_size], dtype=tf.float32,initializer=tf.truncated_normal_initializer(stddev=0.5))
-            
             zero_pad = True
             if zero_pad:    # transformer에 구현되어 있는 거 보고, 가져온 로직.
                 # <PAD> 0 은 embedding이 0으로 고정되고, train으로 변하지 않는다. 즉, 위의 get_variable에서 잡았던 변수의 첫번째 행(<PAD>)에 대응되는 것은 사용되지 않는 것이다)
-                char_embed_table = tf.concat((tf.zeros(shape=[1, hp.embedding_size]),char_embed_table[1:, :]), 0)
-            
-            
+                char_embed_table = tf.concat((tf.zeros(shape=[1, hp.embedding_size]), char_embed_table[1:, :]), 0)
+
             # [N, T_in, embedding_size]
             char_embedded_inputs = tf.nn.embedding_lookup(char_embed_table, inputs)
 
@@ -103,14 +101,12 @@ class Tacotron():
             ##############
             # Encoder
             ##############
-
             # [N, T_in, enc_prenet_sizes[-1]]
             prenet_outputs = prenet(char_embedded_inputs, is_training, hp.enc_prenet_sizes, hp.dropout_prob, scope='prenet')  # 'enc_prenet_sizes': [f(256), f(128)],  dropout_prob = 0.5
             # ==> (N, T_in, 128)
             
-            
             # enc_rnn_size = 128
-            encoder_outputs = cbhg(prenet_outputs, input_lengths, is_training,hp.enc_bank_size, hp.enc_bank_channel_size,
+            encoder_outputs = cbhg(prenet_outputs, input_lengths, is_training, hp.enc_bank_size, hp.enc_bank_channel_size,
                                     hp.enc_maxpool_width, hp.enc_highway_depth, hp.enc_rnn_size,hp.enc_proj_sizes, hp.enc_proj_width,
                                     scope="encoder_cbhg",before_highway=before_highway,encoder_rnn_init_state=encoder_rnn_init_state)
 
