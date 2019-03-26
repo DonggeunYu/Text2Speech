@@ -2,4 +2,4 @@ datasets/kss/
 training_data/
 data/
 logdir-tacotron/
-__pycache__/
+**/__pycache__/
