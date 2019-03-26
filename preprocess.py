@@ -7,7 +7,7 @@ from hparams import hparams
 def preprocess(mod, out_dir, in_dir, num_workers):
     os.makedirs(out_dir, exist_ok=True)
     metadata = mod.build_from_path(hparams, in_dir, out_dir, num_workers, tqdm=tqdm)
-    write_metadat(metadata, out_dir)
+    write_metadata(metadata, out_dir)
 
 def write_metadata(metadata, out_dir):
     with open(os.path.join(out_dir, 'train.txt'), 'w', encoding='utf-8') as f:
