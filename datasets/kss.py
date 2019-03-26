@@ -5,7 +5,7 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
 
-def build_from_path(hparams, in_dir, out_dir, num_workers, tqdm=lambda x:x):
+def build_from_path(hparams, in_dir, out_dir, num_workers, tqdm=lambda x: x):
     """
     Preprocesses the speech dataset from a gven input path to given output directories
 
@@ -21,7 +21,6 @@ def build_from_path(hparams, in_dir, out_dir, num_workers, tqdm=lambda x:x):
     """
 
     path = in_dir + '/transcript.txt'
-
     executor = ProcessPoolExecutor(max_workers=num_workers)
     futures = []
 

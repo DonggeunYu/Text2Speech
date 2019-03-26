@@ -22,7 +22,7 @@ def write_metadata(metadata, out_dir):
     print('Max mel frames length: {}'.format(max(int(m[4]) for m in metadata)))
     print('Max audio timesteps length: {}'.format(max(m[3] for m in metadata)))
 
-if __name__ == "__main":
+if __name__ == "__main__":
     """
     Args:
         --name: name of dataset

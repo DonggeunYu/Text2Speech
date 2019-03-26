@@ -14,7 +14,7 @@ hparams = tf.contrib.training.HParams(
     use_lws=False,
 
     # Audio
-    sample_rate=24000,  #
+    sample_rate=24000,  #kss: 44100
 
     # shift can be specified by either hop_size(우선) or frame_shift_ms
     hop_size=300,  # frame_shift_ms = 12.5ms
