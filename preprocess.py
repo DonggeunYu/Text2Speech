@@ -33,7 +33,7 @@ if __name__ == "__main__":
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='kss')
-    parser.add_argument('--num_workers', type=int, default=1)
+    parser.add_argument('--num_workers', type=int, default=os.cpu_count())
 
     args = parser.parse_args()
 
@@ -48,8 +48,12 @@ if __name__ == "__main__":
 
     print(hparams_debug_string())
 
+    print('-' * 50)
     print("Sampling frequency: {}".format(hparams.sample_rate))
     print("Num worker: {}".format(num_workers))
+    print('-' * 50)
+    print('')
+
 
     mod = importlib.import_module('datasets.{}'.format(name))
     preprocess(mod, out_dir, in_dir, num_workers)

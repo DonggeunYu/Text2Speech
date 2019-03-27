@@ -2,15 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a1f0317d-52d3-4fe4-83fe-2b26b002e289" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/text/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/text/cleaners.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/text/en_numbers.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/text/ko_dictionary.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/text/korean.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/text/symbols.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/datasets/kss.py" beforeDir="false" afterPath="$PROJECT_DIR$/datasets/kss.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hparams.py" beforeDir="false" afterPath="$PROJECT_DIR$/hparams.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/preprocess.py" beforeDir="false" afterPath="$PROJECT_DIR$/preprocess.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -21,7 +12,7 @@
   </component>
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/Text2Speech$symbols.coverage" NAME="symbols Coverage Results" MODIFIED="1549617083690" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tacotron/utils" />
-    <SUITE FILE_PATH="coverage/Text2Speech$preprocess.coverage" NAME="preprocess Coverage Results" MODIFIED="1553664663728" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Text2Speech$preprocess.coverage" NAME="preprocess Coverage Results" MODIFIED="1553664964507" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Text2Speech$train_tacotron.coverage" NAME="train_tacotron Coverage Results" MODIFIED="1553586936983" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Text2Speech$test.coverage" NAME="test Coverage Results" MODIFIED="1553512454210" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Text2Speech$test__1_.coverage" NAME="test (1) Coverage Results" MODIFIED="1553512477853" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/datasets" />
@@ -41,10 +32,10 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/text/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-416">
+            <state relative-caret-position="615">
               <caret line="41" selection-start-line="41" selection-end-line="41" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
@@ -71,25 +62,11 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/datasets/kss.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="100">
-              <caret line="162" selection-start-line="162" selection-end-line="162" />
+            <state relative-caret-position="-1785">
+              <caret line="24" column="34" selection-start-line="24" selection-start-column="15" selection-end-line="24" selection-end-column="34" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
                 <element signature="e#1865#2327#1" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/text/symbols.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-43">
-              <caret line="6" column="3" selection-start-line="6" selection-start-column="3" selection-end-line="6" selection-end-column="3" />
-              <folding>
-                <element signature="e#16#276#1" expanded="true" />
-                <element signature="e#277#302#0" expanded="true" />
-                <element signature="e#596#1436#1" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -125,11 +102,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/preprocess.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="121">
-              <caret line="48" selection-start-line="48" selection-end-line="48" />
+            <state relative-caret-position="211">
+              <caret line="54" column="11" selection-start-line="54" selection-start-column="11" selection-end-line="54" selection-end-column="11" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
               </folding>
@@ -211,10 +188,10 @@
         <option value="$PROJECT_DIR$/text/korean.py" />
         <option value="$PROJECT_DIR$/text/ko_dictionary.py" />
         <option value="$PROJECT_DIR$/text/en_numbers.py" />
-        <option value="$PROJECT_DIR$/preprocess.py" />
         <option value="$PROJECT_DIR$/datasets/kss.py" />
         <option value="$PROJECT_DIR$/text/cleaners.py" />
         <option value="$PROJECT_DIR$/text/__init__.py" />
+        <option value="$PROJECT_DIR$/preprocess.py" />
       </list>
     </option>
   </component>
@@ -373,12 +350,12 @@
       <workItem from="1553134136958" duration="3611000" />
       <workItem from="1553174479121" duration="5387000" />
       <workItem from="1553252491222" duration="24701000" />
-      <workItem from="1553500126277" duration="27430000" />
+      <workItem from="1553500126277" duration="27685000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="106937000" />
+    <option name="totallyTimeSpent" value="107192000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1379" height="534" extended-state="0" />
@@ -445,7 +422,6 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/tacotron/utils/test.py" />
     <entry file="file://$PROJECT_DIR$/wavenet_vocoder/models/wavenet.py" />
     <entry file="file://$PROJECT_DIR$/tacotron/utils/symbols.py" />
     <entry file="file://$PROJECT_DIR$/tacotron/models/attention.py" />
@@ -743,16 +719,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/preprocess.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="121">
-          <caret line="48" selection-start-line="48" selection-end-line="48" />
-          <folding>
-            <element signature="e#0#15#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/hparams.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="135">
@@ -781,10 +747,29 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/text/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="615">
+          <caret line="41" selection-start-line="41" selection-end-line="41" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#467#963#1" expanded="true" />
+            <element signature="e#3143#3265#1" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///anaconda3/envs/conda/lib/python3.6/concurrent/futures/process.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-793">
+          <caret line="390" column="46" lean-forward="true" selection-start-line="390" selection-start-column="32" selection-end-line="390" selection-end-column="46" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/datasets/kss.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="100">
-          <caret line="162" selection-start-line="162" selection-end-line="162" />
+        <state relative-caret-position="-1785">
+          <caret line="24" column="34" selection-start-line="24" selection-start-column="15" selection-end-line="24" selection-end-column="34" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
             <element signature="e#1865#2327#1" expanded="true" />
@@ -792,14 +777,12 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/text/__init__.py">
+    <entry file="file://$PROJECT_DIR$/preprocess.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-416">
-          <caret line="41" selection-start-line="41" selection-end-line="41" />
+        <state relative-caret-position="211">
+          <caret line="54" column="11" selection-start-line="54" selection-start-column="11" selection-end-line="54" selection-end-column="11" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
-            <element signature="e#467#963#1" expanded="true" />
-            <element signature="e#3143#3265#1" expanded="true" />
+            <element signature="e#0#15#0" expanded="true" />
           </folding>
         </state>
       </provider>
