@@ -40,7 +40,7 @@ def build_from_path(hparams, in_dir, out_dir, num_workers, tqdm=lambda x: x):
                 text = sp[1]
                 wav_path = sp[0]
                 text = sp[2]
-                futures.append(executor.submit(partial(_process_utterance, out_dir, '{}/{}'.format(in_dir, wav_path), text, hparams)))
+                futures.append(executor.submit(partial(_process_utterance, out_dir, wav_path, text, hparams)))
 
     return [future.result() for future in tqdm(futures) if future.result() is not None]
 
