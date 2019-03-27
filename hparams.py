@@ -8,8 +8,6 @@ hparams = tf.contrib.training.HParams(
 
     # tacotron hyper parameter
 
-    cleaners='korean_cleaners',  # 'korean_cleaners'   or 'english_cleaners'
-
     skip_path_filter=False,  # npz파일에서 불필요한 것을 거르는 작업을 할지 말지 결정. receptive_field 보다 짧은 data를 걸러야 하기 때문에 해 줘야 한다.
     use_lws=False,
 

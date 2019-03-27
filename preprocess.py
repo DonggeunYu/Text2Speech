@@ -2,7 +2,9 @@ import argparse
 import os
 import importlib
 from tqdm import tqdm
-from hparams import hparams
+from hparams import hparams, hparams_debug_string
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 def preprocess(mod, out_dir, in_dir, num_workers):
     os.makedirs(out_dir, exist_ok=True)
@@ -17,6 +19,7 @@ def write_metadata(metadata, out_dir):
     timesteps = sum([int(lines[3]) for lines in metadata])
     sr = hparams.sample_rate
     hours = timesteps / sr / 3600
+    print(metadata)
     print('Write {} utterances, {} mel frames, {} audio timesteps, ({:.2f} hours)'.format(len(metadata), mel_frames, timesteps, hours))
     print('Max input length (text chars): {}'.format(max(len(m[5]) for m in metadata)))
     print('Max mel frames length: {}'.format(max(int(m[4]) for m in metadata)))
@@ -29,8 +32,8 @@ if __name__ == "__main__":
         --num_workers: how many use the worker?
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--name', type=str, default=None)
-    parser.add_argument('--num_workers', type=int, default=4)
+    parser.add_argument('--name', type=str, default='kss')
+    parser.add_argument('--num_workers', type=int, default=1)
 
     args = parser.parse_args()
 
@@ -42,6 +45,8 @@ if __name__ == "__main__":
     if name == None or out_dir == None:
         print("Error: argument is None")
         raise ValueError
+
+    print(hparams_debug_string())
 
     print("Sampling frequency: {}".format(hparams.sample_rate))
     print("Num worker: {}".format(num_workers))
