@@ -4,6 +4,7 @@ from utils import audio
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from text import text_to_sequence
+from operator import eq
 
 
 def build_from_path(hparams, in_dir, out_dir, num_workers=1, tqdm=lambda x: x):
@@ -25,17 +26,16 @@ def build_from_path(hparams, in_dir, out_dir, num_workers=1, tqdm=lambda x: x):
     executor = ProcessPoolExecutor(max_workers=num_workers)
     futures = []
     index = 1
-
-    with open(path, encoding='utf-8') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
-
         for i in lines:
             sp = i.split('|')
-            if sp[1] == sp[2]: #문장이 같을 경우
+            print(sp[1], sp[2])
+            if len(sp[1].split()) == len(sp[2].split()): #문장이 같을 경우
                 wav_path = sp[0]
                 text = sp[1]
-
                 futures.append(executor.submit(partial(_process_utterance, out_dir, '{}/{}'.format(in_dir, wav_path), text, hparams)))
+                print('a')
             else: # 문장이 다를 경우
                 wav_path = sp[0]
                 text = sp[1]
@@ -44,7 +44,6 @@ def build_from_path(hparams, in_dir, out_dir, num_workers=1, tqdm=lambda x: x):
                 text = sp[2]
                 futures.append(executor.submit(partial(_process_utterance, out_dir, '{}/{}'.format(in_dir, wav_path), text, hparams)))
             index += 1
-
     return [future.result() for future in tqdm(futures) if future.result() is not None]
 
 def _process_utterance(out_dir, wav_path, text, hparams):
@@ -65,37 +64,36 @@ def _process_utterance(out_dir, wav_path, text, hparams):
     """
     try:
         # Load the audio as numpy array
-        wav = audio.load_wav(wav_path, sr=hparams.sample_rate)
+        wav = audio.load_wav(wav_path, sr=hparams['sample_rate'])
     except FileNotFoundError:  # catch missing wav exception
         print('file {} present in csv metadata is not present in wav folder. skipping!'.format(
             wav_path))
         return None
-
     # rescale wav
-    if hparams.rescaling:  # hparams.rescale = True
-        wav = wav / np.abs(wav).max() * hparams.rescaling_max
+    if hparams['rescaling']:  # hparams.rescale = True
+        wav = wav / np.abs(wav).max() * hparams['rescaling_max']
 
     # M-AILABS extra silence specific
-    if hparams.trim_silence:  # hparams.trim_silence = True
+    if hparams['trim_silence']:  # hparams.trim_silence = True
         wav = audio.trim_silence(wav, hparams)  # Trim leading and trailing silence
 
     # Mu-law quantize, default 값은 'raw'
-    if hparams.input_type == 'mulaw-quantize':
+    if hparams['input_type'] == 'mulaw-quantize':
         # [0, quantize_channels)
-        out = audio.mulaw_quantize(wav, hparams.quantize_channels)
+        out = audio.mulaw_quantize(wav, hparams['quantize_channels'])
 
         # Trim silences
-        start, end = audio.start_and_end_indices(out, hparams.silence_threshold)
+        start, end = audio.start_and_end_indices(out, hparams['silence_threshold'])
         wav = wav[start: end]
         out = out[start: end]
 
-        constant_values = mulaw_quantize(0, hparams.quantize_channels)
+        constant_values = mulaw_quantize(0, hparams['quantize_channels'])
         out_dtype = np.int16
 
-    elif hparams.input_type == 'mulaw':
+    elif hparams['input_type'] == 'mulaw':
         # [-1, 1]
-        out = audio.mulaw(wav, hparams.quantize_channels)
-        constant_values = audio.mulaw(0., hparams.quantize_channels)
+        out = audio.mulaw(wav, hparams['quantize_channels'])
+        constant_values = audio.mulaw(0., hparams['quantize_channels'])
         out_dtype = np.float32
 
     else:  # raw
@@ -108,7 +106,7 @@ def _process_utterance(out_dir, wav_path, text, hparams):
     mel_spectrogram = audio.melspectrogram(wav, hparams).astype(np.float32)
     mel_frames = mel_spectrogram.shape[1]
 
-    if mel_frames > hparams.max_mel_frames and hparams.clip_mels_length:  # hparams.max_mel_frames = 1000, hparams.clip_mels_length = True
+    if mel_frames > hparams['max_mel_frames'] and hparams['clip_mels_length']:  # hparams.max_mel_frames = 1000, hparams.clip_mels_length = True
         return None
 
     # Compute the linear scale spectrogram from the wav
@@ -118,16 +116,16 @@ def _process_utterance(out_dir, wav_path, text, hparams):
     # sanity check
     assert linear_frames == mel_frames
 
-    if hparams.use_lws:  # hparams.use_lws = False
+    if hparams['use_lws']:  # hparams.use_lws = False
         # Ensure time resolution adjustement between audio and mel-spectrogram
-        fft_size = hparams.fft_size if hparams.win_size is None else hparams.win_size
+        fft_size = hparams['fft_size'] if hparams['win_size'] is None else hparams['win_size']
         l, r = audio.pad_lr(wav, fft_size, audio.get_hop_size(hparams))
 
         # Zero pad audio signal
         out = np.pad(out, (l, r), mode='constant', constant_values=constant_values)
     else:
         # Ensure time resolution adjustement between audio and mel-spectrogram
-        pad = audio.librosa_pad_lr(wav, hparams.fft_size, audio.get_hop_size(hparams))
+        pad = audio.librosa_pad_lr(wav, hparams['fft_size'], audio.get_hop_size(hparams))
 
         # Reflect pad audio signal (Just like it's done in Librosa to avoid frame inconsistency)
         out = np.pad(out, pad, mode='reflect')

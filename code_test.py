@@ -1,9 +1,3 @@
-char_embed_table = [[[1, 1, 1],
-                [2, 2, 2],
-                [3, 3, 3]],
-               [[4, 4, 4],
-                [5, 5, 5],
-                [6, 6, 6]]
-               ]
-a= char_embed_table[1:, :]
-print(a)
+a = list('용돈을 아껴 써라.')
+b = list('용돈을 아껴 써라.')
+print(len(a), len(b))

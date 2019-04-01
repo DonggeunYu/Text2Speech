@@ -5,7 +5,6 @@ import numpy as np
 import tensorflow as tf
 from scipy import signal
 from scipy.io import wavfile
-from tensorflow.contrib.training.python.training.hparam import HParams
 
 
 def load_wav(path, sr):
@@ -55,46 +54,46 @@ def trim_silence(wav, hparams):
     Useful for M-AILABS dataset if we choose to trim the extra 0.5 silence at beginning and end.
     '''
     # Thanks @begeekmyfriend and @lautjy for pointing out the params contradiction. These params are separate and tunable per dataset.
-    return librosa.effects.trim(wav, top_db=hparams.trim_top_db, frame_length=hparams.trim_fft_size,
-                                hop_length=hparams.trim_hop_size)[0]
+    return librosa.effects.trim(wav, top_db=hparams['trim_top_db'], frame_length=hparams['trim_fft_size'],
+                                hop_length=hparams['trim_hop_size'])[0]
 
 
 def get_hop_size(hparams):
-    hop_size = hparams.hop_size
+    hop_size = hparams['hop_size']
     if hop_size is None:
         assert hparams.frame_shift_ms is not None
-        hop_size = int(hparams.frame_shift_ms / 1000 * hparams.sample_rate)
+        hop_size = int(hparams.frame_shift_ms / 1000 * hparams['sample_rate'])
     return hop_size
 
 
 def linearspectrogram(wav, hparams):
-    D = _stft(preemphasis(wav, hparams.preemphasis, hparams.preemphasize), hparams)
-    S = _amp_to_db(np.abs(D), hparams) - hparams.ref_level_db
+    D = _stft(preemphasis(wav, hparams['preemphasis'], hparams['preemphasize']), hparams)
+    S = _amp_to_db(np.abs(D), hparams) - hparams['ref_level_db']
 
-    if hparams.signal_normalization:  # Tacotron에서 항상적용했다.
+    if hparams['signal_normalization']:  # Tacotron에서 항상적용했다.
         return _normalize(S, hparams)
     return S
 
 
 def melspectrogram(wav, hparams):
-    D = _stft(preemphasis(wav, hparams.preemphasis, hparams.preemphasize), hparams)
-    S = _amp_to_db(_linear_to_mel(np.abs(D), hparams), hparams) - hparams.ref_level_db
+    D = _stft(preemphasis(wav, hparams['preemphasis'], hparams['preemphasize']), hparams)
+    S = _amp_to_db(_linear_to_mel(np.abs(D), hparams), hparams) - hparams['ref_level_db']
 
-    if hparams.signal_normalization:
+    if hparams['signal_normalization']:
         return _normalize(S, hparams)
     return S
 
 
 def inv_linear_spectrogram(linear_spectrogram, hparams):
     '''Converts linear spectrogram to waveform using librosa'''
-    if hparams.signal_normalization:
+    if hparams['signal_normalization']:
         D = _denormalize(linear_spectrogram, hparams)
     else:
         D = linear_spectrogram
 
     S = _db_to_amp(D + hparams.ref_level_db)  # Convert back to linear
 
-    if hparams.use_lws:
+    if hparams['use_lws']:
         processor = _lws_processor(hparams)
         D = processor.run_lws(S.astype(np.float64).T ** hparams.power)
         y = processor.istft(D).astype(np.float32)
@@ -105,14 +104,14 @@ def inv_linear_spectrogram(linear_spectrogram, hparams):
 
 def inv_mel_spectrogram(mel_spectrogram, hparams):
     '''Converts mel spectrogram to waveform using librosa'''
-    if hparams.signal_normalization:
+    if hparams['signal_normalization']:
         D = _denormalize(mel_spectrogram, hparams)
     else:
         D = mel_spectrogram
 
     S = _mel_to_linear(_db_to_amp(D + hparams.ref_level_db), hparams)  # Convert back to linear
 
-    if hparams.use_lws:
+    if hparams['use_lws']:
         processor = _lws_processor(hparams)
         D = processor.run_lws(S.astype(np.float64).T ** hparams.power)
         y = processor.istft(D).astype(np.float32)
@@ -135,7 +134,7 @@ def inv_spectrogram(spectrogram, hparams):
 
 def _lws_processor(hparams):
     import lws
-    return lws.lws(hparams.fft_size, get_hop_size(hparams), fftsize=hparams.win_size, mode="speech")
+    return lws.lws(hparams['fft_size'], get_hop_size(hparams), fftsize=hparams['win_size'], mode="speech")
 
 
 def _griffin_lim(S, hparams):
@@ -152,14 +151,14 @@ def _griffin_lim(S, hparams):
 
 
 def _stft(y, hparams):
-    if hparams.use_lws:
+    if hparams['use_lws']:
         return _lws_processor(hparams).stft(y).T
     else:
-        return librosa.stft(y=y, n_fft=hparams.fft_size, hop_length=get_hop_size(hparams), win_length=hparams.win_size)
+        return librosa.stft(y=y, n_fft=hparams['fft_size'], hop_length=get_hop_size(hparams), win_length=hparams['win_size'])
 
 
 def _istft(y, hparams):
-    return librosa.istft(y, hop_length=get_hop_size(hparams), win_length=hparams.win_size)
+    return librosa.istft(y, hop_length=get_hop_size(hparams), win_length=hparams['win_size'])
 
 
 ##########################################################
@@ -218,12 +217,12 @@ def _build_mel_basis(hparams):
     # fmin: Set this to 55 if your speaker is male! if female, 95 should help taking off noise. (To test depending on dataset. Pitch info: male~[65, 260], female~[100, 525])
     # fmax: 7600, To be increased/reduced depending on data.
     # return librosa.filters.mel(hparams.sample_rate, hparams.fft_size, n_mels=hparams.num_mels,fmin=hparams.fmin, fmax=hparams.fmax)
-    return librosa.filters.mel(hparams.sample_rate, hparams.fft_size,
-                               n_mels=hparams.num_mels)  # fmin=0, fmax= sample_rate/2.0
+    return librosa.filters.mel(hparams['sample_rate'], hparams['fft_size'],
+                               n_mels=hparams['num_mels'])  # fmin=0, fmax= sample_rate/2.0
 
 
 def _amp_to_db(x, hparams):
-    min_level = np.exp(hparams.min_level_db / 20 * np.log(10))
+    min_level = np.exp(hparams['min_level_db'] / 20 * np.log(10))
     return 20 * np.log10(np.maximum(min_level, x))
 
 
@@ -234,19 +233,19 @@ def _db_to_amp(x):
 def _normalize(S, hparams):
     if hparams.allow_clipping_in_normalization:
         if hparams.symmetric_mels:
-            return np.clip((2 * hparams.max_abs_value) * (
-                        (S - hparams.min_level_db) / (-hparams.min_level_db)) - hparams.max_abs_value,
-                           -hparams.max_abs_value, hparams.max_abs_value)
+            return np.clip((2 * hparams['max_abs_value']) * (
+                        (S - hparams['min_level_db']) / (-hparams['min_level_db'])) - hparams['max_abs_value'],
+                           -hparams['max_abs_value'], hparams['max_abs_value'])
         else:
-            return np.clip(hparams.max_abs_value * ((S - hparams.min_level_db) / (-hparams.min_level_db)), 0,
-                           hparams.max_abs_value)
+            return np.clip(hparams['max_abs_value'] * ((S - hparams['min_level_db']) / (-hparams['min_level_db'])), 0,
+                           hparams['max_abs_value'])
 
-    assert S.max() <= 0 and S.min() - hparams.min_level_db >= 0
-    if hparams.symmetric_mels:
-        return (2 * hparams.max_abs_value) * (
-                    (S - hparams.min_level_db) / (-hparams.min_level_db)) - hparams.max_abs_value
+    assert S.max() <= 0 and S.min() - hparams['min_level_db'] >= 0
+    if hparams['symmetric_mels']:
+        return (2 * hparams['max_abs_value']) * (
+                    (S - hparams['min_level_db']) / (-hparams['min_level_db'])) - hparams['max_abs_value']
     else:
-        return hparams.max_abs_value * ((S - hparams.min_level_db) / (-hparams.min_level_db))
+        return hparams['max_abs_value'] * ((S - hparams['min_level_db']) / (-hparams['min_level_db']))
 
 
 def _denormalize(D, hparams):
@@ -415,7 +414,7 @@ def frames_to_hours(n_frames, hparams):
 
 
 def get_duration(audio, hparams):
-    return librosa.core.get_duration(audio, sr=hparams.sample_rate)
+    return librosa.core.get_duration(audio, sr=hparams['sample_rate'])
 
 
 def _db_to_amp_tensorflow(x):
@@ -450,6 +449,6 @@ def _stft_tensorflow(signals, hparams):
 
 def _stft_parameters(hparams):
     n_fft = (hparams.num_freq - 1) * 2  # hparams.num_freq = 1025
-    hop_length = int(hparams.frame_shift_ms / 1000 * hparams.sample_rate)  # hparams.frame_shift_ms = 12.5
-    win_length = int(hparams.frame_length_ms / 1000 * hparams.sample_rate)  # hparams.frame_length_ms = 50
+    hop_length = int(hparams.frame_shift_ms / 1000 * hparams['sample_rate'])  # hparams.frame_shift_ms = 12.5
+    win_length = int(hparams.frame_length_ms / 1000 * hparams['sample_rate'])  # hparams.frame_length_ms = 50
     return n_fft, hop_length, win_length

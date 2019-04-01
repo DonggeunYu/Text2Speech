@@ -2,9 +2,10 @@ import argparse
 import os
 import importlib
 from tqdm import tqdm
-from hparams import hparams, hparams_debug_string
+from hparams import hparams
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
 
 def preprocess(mod, out_dir, in_dir, num_workers):
     os.makedirs(out_dir, exist_ok=True)
@@ -17,9 +18,8 @@ def write_metadata(metadata, out_dir):
             f.write('|'.join([str(i) for i in lines]) + '\n')
     mel_frames = sum([int(lines[4]) for lines in metadata])
     timesteps = sum([int(lines[3]) for lines in metadata])
-    sr = hparams.sample_rate
+    sr = hparams['sample_rate']
     hours = timesteps / sr / 3600
-    print(metadata)
     print('Write {} utterances, {} mel frames, {} audio timesteps, ({:.2f} hours)'.format(len(metadata), mel_frames, timesteps, hours))
     print('Max input length (text chars): {}'.format(max(len(m[5]) for m in metadata)))
     print('Max mel frames length: {}'.format(max(int(m[4]) for m in metadata)))
@@ -46,10 +46,9 @@ if __name__ == "__main__":
         print("Error: argument is None")
         raise ValueError
 
-    print(hparams_debug_string())
 
     print('-' * 50)
-    print("Sampling frequency: {}".format(hparams.sample_rate))
+    print("Sampling frequency: {}".format(hparams['sample_rate']))
     print("Num worker: {}".format(num_workers))
     print('-' * 50)
     print('')
