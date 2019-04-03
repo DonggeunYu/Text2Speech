@@ -14,7 +14,7 @@ class Tacotron():
 
         self.is_randomly_initialized = is_randomly_initialized
 
-        with tf.variable_scope('inference') as scope:
+        with tf.name_scope('inference') as scope:
             hp = self._hparams
             batch_size = tf.shape(inputs)[0]
 
@@ -89,7 +89,7 @@ class Tacotron():
                 prenet_outputs = prenet(char_embedded_inputs, is_training, hp.enc_prenet_sizes, hp.dropout_prob,
                                         scope='prenet')  # 'enc_prenet_sizes': [f(256), f(128)],  dropout_prob = 0.5
                 # ==> (N, T_in, 128)
-
+                print('a')
                 # enc_rnn_size = 128
                 encoder_outputs = cbhg(prenet_outputs, input_lengths, is_training, hp.enc_bank_size,
                                        hp.enc_bank_channel_size,

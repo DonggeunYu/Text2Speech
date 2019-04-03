@@ -11,6 +11,8 @@ from utils import parallel_run
 from utils import parallel_run, remove_file
 from utils.audio import frames_to_hours
 
+tf.compat.v1.disable_eager_execution()
+
 def get_frame(path):
     data = np.load(path)
     n_frame = data["linear"].shape[0]
@@ -28,11 +30,11 @@ def get_path_dict(data_dirs, hparams, config, data_type, n_test=None, rng=np.ran
 
         items = parallel_run(get_frame, paths, desc="filter_by_min_max_frame_batch", parallel=True)
 
-        min_n_frame = hparams.reduction_factor * hparams.min_iters  # 5*30
-        max_n_frame = hparams.reduction_factor * hparams.max_iters - hparams.reduction_factor  # 5*200 - 5
+        min_n_frame = hparams['reduction_factor'] * hparams['min_iters']  # 5*30
+        max_n_frame = hparams['reduction_factor'] * hparams['max_iters'] - hparams['reduction_factor']  # 5*200 - 5
 
         #글자수를 기준으로 짧거나 길면 짤림
-        new_items = [(path, n) for path, n, n_tokens in items if min_n_frame <= n <= max_n_frame and n_tokens >= hparams.min_tokens] # [('datasets/moon\\data\\004.0383.npz', 297), ('datasets/moon\\data\\003.0533.npz', 394),...]
+        new_items = [(path, n) for path, n, n_tokens in items if min_n_frame <= n <= max_n_frame and n_tokens >= hparams['min_tokens']] # [('datasets/moon\\data\\004.0383.npz', 297), ('datasets/moon\\data\\003.0533.npz', 394),...]
 
         new_paths = [path for path, n in new_items]
         new_n_frames = [n for path, n in new_items]
@@ -70,9 +72,9 @@ class DataFeederTacotron(threading.Thread):
         self.data_type = data_type
         self.batch_size = batch_size
 
-        self.min_tokens = hparams.min_tokens  # 30
-        self.min_n_frame = hparams.reduction_factor * hparams.min_iters  # 5*30
-        self.max_n_frame = hparams.reduction_factor * hparams.max_iters - hparams.reduction_factor  # 5*200 - 5
+        self.min_tokens = hparams['min_tokens']  # 30
+        self.min_n_frame = hparams['reduction_factor'] * hparams['min_iters']  # 5*30
+        self.max_n_frame = hparams['reduction_factor'] * hparams['max_iters'] - hparams['reduction_factor']  # 5*200 - 5
 
 
         # Load metadata:
@@ -94,11 +96,11 @@ class DataFeederTacotron(threading.Thread):
         log("="*40)
 
         self._placeholders = [
-            tf.placeholder(tf.int32, [None, None], 'inputs'),
-            tf.placeholder(tf.int32, [None], 'input_lengths'),
-            tf.placeholder(tf.float32, [None], 'loss_coeff'),
-            tf.placeholder(tf.float32, [None, None, hparams.num_mels], 'mel_targets'),
-            tf.placeholder(tf.float32, [None, None, hparams.num_freq], 'linear_targets'),
+            tf.keras.backend.placeholder([None, None], dtype=tf.int32, name='inputs'),
+            tf.keras.backend.placeholder([None], dtype=tf.int32, name='input_lengths'),
+            tf.keras.backend.placeholder([None], dtype=tf.float32, name='loss_coeff'),
+            tf.keras.backend.placeholder([None, None, hparams['num_mels']], dtype=tf.float32, name='mel_targets'),
+            tf.keras.backend.placeholder([None, None, hparams['num_freq']], dtype=tf.float32, name='linear_targets'),
         ]
 
         # Create queue for buffering data:
@@ -107,12 +109,12 @@ class DataFeederTacotron(threading.Thread):
         self.is_multi_speaker = len(self.data_dirs) > 1
 
         if self.is_multi_speaker:
-            self._placeholders.append(tf.placeholder(tf.int32, [None],
-                                                     'speaker_id'), )  # speaker_id 추가  'inputs'  --> 'speaker_id'로 바꿔야 하지 않나??
+            self._placeholders.append(tf.keras.backend.placeholder(dtype=tf.int32, shape=[None],
+                                                     name='speaker_id'), )  # speaker_id 추가  'inputs'  --> 'speaker_id'로 바꿔야 하지 않나??
             dtypes.append(tf.int32)
-
+        print('a')
         num_workers = os.cpu_count() if self.data_type == 'train' else 1
-        queue = tf.FIFOQueue(num_workers, dtypes, name='input_queue')
+        queue = tf.queue.FIFOQueue(num_workers, dtypes, name='input_queue')
 
         self._enqueue_op = queue.enqueue(self._placeholders)
 

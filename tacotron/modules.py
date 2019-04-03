@@ -2,9 +2,7 @@
 # Code based on https://github.com/keithito/tacotron/blob/master/models/tacotron.py
 
 import tensorflow as tf
-from tensorflow.contrib.rnn import GRUCell
 from tensorflow.python.layers import core
-from tensorflow.contrib.seq2seq.python.ops.attention_wrapper import _bahdanau_score, _BaseAttentionMechanism, BahdanauAttention, AttentionWrapper, AttentionWrapperState
 
 
 def get_embed(inputs, num_inputs, embed_size, name):  # speaker_id, self.num_speakers, hp.enc_prenet_sizes[-1], "before_highway"
@@ -18,8 +16,8 @@ def prenet(inputs, is_training, layer_sizes, drop_prob, scope=None):
     #print('drop_rate',drop_rate)
     with tf.variable_scope(scope or 'prenet'):
         for i, size in enumerate(layer_sizes):  # [f(256), f(128)]
-            dense = tf.layers.dense(x, units=size, activation=tf.nn.relu, name='dense_%d' % (i+1))
-            x = tf.layers.dropout(dense, rate=drop_rate,training=is_training, name='dropout_%d' % (i+1))
+            dense = tf.keras.layers.Dense(x, units=size, activation='relu')
+            x = tf.keras.layers.Dropout(dense, rate=drop_rate)
     return x
 
 def cbhg(inputs, input_lengths, is_training, bank_size, bank_channel_size, maxpool_width, highway_depth,

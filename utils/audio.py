@@ -410,7 +410,7 @@ def _asfloat(x):
 
 
 def frames_to_hours(n_frames, hparams):
-    return sum((n_frame for n_frame in n_frames)) * hparams.frame_shift_ms / (3600 * 1000)
+    return sum((n_frame for n_frame in n_frames)) * hparams['frame_shift_ms'] / (3600 * 1000)
 
 
 def get_duration(audio, hparams):

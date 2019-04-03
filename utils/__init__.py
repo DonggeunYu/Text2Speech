@@ -29,7 +29,7 @@ def prepare_dirs(config, hparams):
     if config.load_path:
         load_hparams(hparams, config.model_dir)
     else:
-        setattr(hparams, "num_speakers", len(config.datasets))
+        hparams["num_speakers"] = len(config.datasets)
 
         save_hparams(config.model_dir, hparams)
         copy_file("hparams.py", os.path.join(config.model_dir, "hparams.py"))
@@ -54,7 +54,7 @@ def parallel_run(fn, items, desc="", parallel=True):
 def save_hparams(model_dir, hparams):
     param_path = os.path.join(model_dir, PARAMS_NAME)
 
-    info = eval(hparams.to_json(), {'false': False, 'true': True, 'null': None})
+    info = hparams
     write_json(param_path, info)
 
     print(" [*] MODEL dir: {}".format(model_dir))

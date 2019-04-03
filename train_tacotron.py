@@ -2,7 +2,7 @@ import argparse
 import os
 import tensorflow as tf
 
-from hparams import hparams, hparams_debug_string
+from hparams import hparams
 from tacotron import create_model
 
 from utils import prepare_dirs
@@ -32,10 +32,9 @@ def train(log_dir, config):
     log(' [*] Checkpoint path: %s' % checkpoint_path)
     log(' [*] Loading training data from: %s' % data_dirs)
     log(' [*] Using model: %s' % config.model_dir)  # 'logdir-tacotron\\moon_2018-08-28_13-06-42'
-    log(hparams_debug_string())
 
     coord = tf.train.Coordinator()
-    with tf.variable_scope('datafeeder'):
+    with tf.name_scope('datafeeder'):
         train_feeder = DataFeederTacotron(coord, data_dirs, hparams, config, 32, data_type='train', batch_size=config.batch_size)
         test_feeder = DataFeederTacotron(coord, data_dirs, hparams, config, 8, data_type='test', batch_size=config.num_test)
 
@@ -43,7 +42,7 @@ def train(log_dir, config):
     is_randomly_initialized = config.initialize_path is None
     global_step = tf.Variable(0, name='global_step', trainable=False)
 
-    with tf.variable_scope('model') as scope:
+    with tf.name_scope('model') as scope:
         model = create_model(hparams)
         model.initialize(train_feeder.inputs, train_feeder.input_lengths, num_speakers, train_feeder.speaker_id,
                          train_feeder.mel_targets, train_feeder.linear_targets,
@@ -64,13 +63,13 @@ def main():
 
     config = parser.parse_args()
     config.data_paths = config.data_paths.split(',')
-    setattr(hparams, "num_speakers", len(config.data_paths))
+    hparams.update({"num_speakers": len(config.data_paths)})
 
     prepare_dirs(config, hparams)
 
     log_path = os.path.join(config.model_dir, 'train.log')
 
-    tf.set_random_seed(config.random_seed)
+    tf.random.set_seed(config.random_seed)
     print(config.data_paths)
 
     if config.load_path is not None and config.initialize_path is not None:
