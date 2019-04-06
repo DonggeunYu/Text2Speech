@@ -34,7 +34,7 @@ def train(log_dir, config):
     log(' [*] Using model: %s' % config.model_dir)  # 'logdir-tacotron\\moon_2018-08-28_13-06-42'
 
     coord = tf.train.Coordinator()
-    with tf.name_scope('datafeeder'):
+    with tf.compat.v1.get_variable_scope('datafeeder'):
         train_feeder = DataFeederTacotron(coord, data_dirs, hparams, config, 32, data_type='train', batch_size=config.batch_size)
         test_feeder = DataFeederTacotron(coord, data_dirs, hparams, config, 8, data_type='test', batch_size=config.num_test)
 
