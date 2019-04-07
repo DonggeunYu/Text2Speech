@@ -1,11 +1,11 @@
 # coding: utf-8
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import SimpleRNNCell as RNNCell
+from tensorflow.keras.layers import SimpleRNNCell
 from tensorflow.python.ops import rnn_cell_impl
 # from tensorflow.contrib.data.python.util import nest
-from tensorflow.keras.layers import nest
-from tacotron.attention_wrapper import _bahdanau_score, _BaseAttentionMechanism, \
+from tensorflow import nest
+from .attention_wrapper import _bahdanau_score, _BaseAttentionMechanism, \
     BahdanauAttention, \
     AttentionWrapperState, AttentionMechanism, _BaseMonotonicAttentionMechanism, _maybe_mask_score, _prepare_memory, \
     _monotonic_probability_fn
@@ -17,7 +17,7 @@ import functools
 _zero_state_tensors = rnn_cell_impl._zero_state_tensors
 
 
-class AttentionWrapper(RNNCell):
+class AttentionWrapper(SimpleRNNCell):
     """Wraps another `RNNCell` with attention.
     """
 
@@ -402,7 +402,7 @@ def _compute_attention(attention_mechanism, cell_output, previous_alignments, at
     return attention, alignments, next_attention_state
 
 
-class DecoderPrenetWrapper(RNNCell):
+class DecoderPrenetWrapper(SimpleRNNCell):
     '''Runs RNN inputs through a prenet before sending them to the cell.'''
 
     #  input에 prenet을 먼저 적용하는 것 뿐이다.
@@ -438,7 +438,7 @@ class DecoderPrenetWrapper(RNNCell):
         return self._cell.zero_state(batch_size, dtype)
 
 
-class ConcatOutputAndAttentionWrapper(RNNCell):
+class ConcatOutputAndAttentionWrapper(SimpleRNNCell):
     '''Concatenates RNN cell output with the attention context vector.
 
     This is expected to wrap a cell wrapped with an AttentionWrapper constructed with

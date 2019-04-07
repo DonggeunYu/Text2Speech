@@ -112,7 +112,6 @@ class DataFeederTacotron(threading.Thread):
             self._placeholders.append(tf.keras.backend.placeholder(dtype=tf.int32, shape=[None],
                                                      name='speaker_id'), )  # speaker_id 추가  'inputs'  --> 'speaker_id'로 바꿔야 하지 않나??
             dtypes.append(tf.int32)
-        print('a')
         num_workers = os.cpu_count() if self.data_type == 'train' else 1
         queue = tf.queue.FIFOQueue(num_workers, dtypes, name='input_queue')
 

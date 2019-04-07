@@ -35,7 +35,6 @@ def build_from_path(hparams, in_dir, out_dir, num_workers=1, tqdm=lambda x: x):
                 wav_path = sp[0]
                 text = sp[1]
                 futures.append(executor.submit(partial(_process_utterance, out_dir, '{}/{}'.format(in_dir, wav_path), text, hparams)))
-                print('a')
             else: # 문장이 다를 경우
                 wav_path = sp[0]
                 text = sp[1]
