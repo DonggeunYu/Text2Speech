@@ -5,7 +5,7 @@ import tensorflow as tf
 from hparams import hparams
 from tacotron import create_model
 
-from utils import prepare_dirs
+from utils import prepare_dirs, ValueWindow
 from utils import infolog
 
 from datasets.datafeeder_tacotron import DataFeederTacotron
@@ -14,6 +14,41 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 log = infolog.log
 
+def add_stats(model, model2=None, scope_name='train'):
+    '''
+
+    :param model: first model
+    :param model2: second model
+    :param scope_name:
+    :return: Loss differences between model 1 and model 2
+    '''
+    with tf.variable_scope(scope_name) as scope:
+        summaries = [
+                tf.summary.scalar('loss_mel', model.mel_loss),
+                tf.summary.scalar('loss_linear', model.linear_loss),
+                tf.summary.scalar('loss', model.loss_without_coeff),
+        ]
+
+        if scope_name == 'train':
+            gradient_norms = [tf.norm(grad) for grad in model.gradients if grad is not None]
+
+            summaries.extend([
+                    tf.summary.scalar('learning_rate', model.learning_rate),
+                    tf.summary.scalar('max_gradient_norm', tf.reduce_max(gradient_norms)),
+            ])
+
+    if model2 is not None:
+        with tf.variable_scope('gap_test-train') as scope:
+            summaries.extend([
+                    tf.summary.scalar('loss_mel',
+                            model.mel_loss - model2.mel_loss),
+                    tf.summary.scalar('loss_linear',
+                            model.linear_loss - model2.linear_loss),
+                    tf.summary.scalar('loss',
+                            model.loss_without_coeff - model2.loss_without_coeff),
+            ])
+
+    return tf.summary.merge(summaries)
 
 def train(log_dir, config):
     config.data_path = config.data_paths
@@ -42,12 +77,30 @@ def train(log_dir, config):
     is_randomly_initialized = config.initialize_path is None
     global_step = tf.Variable(0, name='global_step', trainable=False)
 
-    with tf.name_scope('model') as scope:
+    with tf.compat.v1.variable_scope('model') as scope:
         model = create_model(hparams)
         model.initialize(train_feeder.inputs, train_feeder.input_lengths, num_speakers, train_feeder.speaker_id,
                          train_feeder.mel_targets, train_feeder.linear_targets,
                          train_feeder.loss_coeff, is_randomly_initialized=is_randomly_initialized)
 
+        model.add_loss()
+        model.add_optimizer(global_step)
+        train_stats = add_stats(model, scope_name='stats')
+
+    with tf.variable_scope('model', reuse=True) as scope:
+        test_model = create_model(hparams)
+        test_model.initialize(test_feeder.inputs, test_feeder.input_lengths,num_speakers, test_feeder.speaker_id,test_feeder.mel_targets, test_feeder.linear_targets,
+                              test_feeder.loss_coeff, rnn_decoder_test_mode=True,is_randomly_initialized=is_randomly_initialized)
+        test_model.add_loss()
+
+    test_stats = add_stats(test_model, model, scope_name='test')
+    test_stats = tf.summary.merge([test_stats, train_stats])
+
+    # Bookkeeping:
+    step = 0
+    time_window = ValueWindow(100)
+    loss_window = ValueWindow(100)
+    saver = tf.train.Saver
 
 def main():
     parser = argparse.ArgumentParser()
