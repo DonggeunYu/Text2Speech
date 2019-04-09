@@ -1,18 +1,46 @@
 import argparse
 import os
+import time
 import tensorflow as tf
 
 from hparams import hparams
-from tacotron import create_model
+from tacotron import create_model, get_most_recent_checkpoint
 
 from utils import prepare_dirs, ValueWindow
 from utils import infolog
+
+from utils.audio import save_wav, inv_spectrogram
 
 from datasets.datafeeder_tacotron import DataFeederTacotron
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 log = infolog.log
+
+def save_and_plot_fn(args, log_dir, step, loss, prefix):
+    idx, (seq, spec, align) = args
+
+    audio_path = os.path.join(log_dir, '{}-step-{:09d}-audio{:03d}.wav'.format(prefix, step, idx))
+    align_path = os.path.join(log_dir, '{}-step-{:09d}-align{:03d}.png'.format(prefix, step, idx))
+
+    waveform = inv_spectrogram(spec.T,hparams)
+    save_wav(waveform, audio_path,hparams.sample_rate)
+
+    info_text = 'step={:d}, loss={:.5f}'.format(step, loss)
+    if 'korean_cleaners' in [x.strip() for x in hparams.cleaners.split(',')]:
+        log('Training korean : Use jamo')
+        plot.plot_alignment( align, align_path, info=info_text, text=sequence_to_text(seq,skip_eos_and_pad=True, combine_jamo=True), isKorean=True)
+    else:
+        log('Training non-korean : X use jamo')
+        plot.plot_alignment(align, align_path, info=info_text,text=sequence_to_text(seq,skip_eos_and_pad=True, combine_jamo=False), isKorean=False)
+
+def save_and_plot(sequences, spectrograms,alignments, log_dir, step, loss, prefix):
+
+    fn = partial(save_and_plot_fn,log_dir=log_dir, step=step, loss=loss, prefix=prefix)
+    items = list(enumerate(zip(sequences, spectrograms, alignments)))
+
+    parallel_run(fn, items, parallel=False)
+    log('Test finished for step {}.'.format(step))
 
 def add_stats(model, model2=None, scope_name='train'):
     '''
@@ -100,7 +128,98 @@ def train(log_dir, config):
     step = 0
     time_window = ValueWindow(100)
     loss_window = ValueWindow(100)
-    saver = tf.train.Saver
+    saver = tf.compat.v1.train.Saver(max_to_keep=None, keep_checkpoint_every_n_hours=2)
+
+    sess_config = tf.compat.v1.ConfigProto(log_device_placement=False, allow_soft_placement=True)
+    sess_config.gpu_options.allow_growth = True
+
+    # Train!
+    # with tf.Session(config=sess_config) as sess:
+    with tf.Session() as sess:
+        try:
+            summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
+            sess.run(tf.global_variables_initializer())
+
+            if config.load_path:
+                # Restore from a checkpoint if the user requested it.
+                restore_path = get_most_recent_checkpoint(config.model_dir)
+                saver.restore(sess, restore_path)
+                log('Resuming from checkpoint: %s at commit: %s' % (restore_path, commit), slack=True)
+            elif config.initialize_path:
+                restore_path = get_most_recent_checkpoint(config.initialize_path)
+                saver.restore(sess, restore_path)
+                log('Initialized from checkpoint: %s at commit: %s' % (restore_path, commit), slack=True)
+
+                zero_step_assign = tf.assign(global_step, 0)
+                sess.run(zero_step_assign)
+
+                start_step = sess.run(global_step)
+                log('=' * 50)
+                log(' [*] Global step is reset to {}'.format(start_step))
+                log('=' * 50)
+            else:
+                log('Starting new training run at commit: %s' % commit, slack=True)
+
+            start_step = sess.run(global_step)
+
+            train_feeder.start_in_session(sess, start_step)
+            test_feeder.start_in_session(sess, start_step)
+
+            while not coord.should_stop():
+                start_time = time.time()
+                step, loss, opt = sess.run([global_step, model.loss_without_coeff, model.optimize],
+                                           feed_dict=model.get_dummy_feed_dict())
+
+                time_window.append(time.time() - start_time)
+                loss_window.append(loss)
+
+                message = 'Step %-7d [%.03f sec/step, loss=%.05f, avg_loss=%.05f]' % (
+                step, time_window.average, loss, loss_window.average)
+                log(message, slack=(step % config.checkpoint_interval == 0))
+
+                if loss > 100 or math.isnan(loss):
+                    log('Loss exploded to %.05f at step %d!' % (loss, step), slack=True)
+                    raise Exception('Loss Exploded')
+
+                if step % config.summary_interval == 0:
+                    log('Writing summary at step: %d' % step)
+
+                    feed_dict = {
+                        **model.get_dummy_feed_dict(),
+                        **test_model.get_dummy_feed_dict()
+                    }
+                    summary_writer.add_summary(sess.run(test_stats, feed_dict=feed_dict), step)
+
+                if step % config.checkpoint_interval == 0:
+                    log('Saving checkpoint to: %s-%d' % (checkpoint_path, step))
+                    saver.save(sess, checkpoint_path, global_step=step)
+
+                if step % config.test_interval == 0:
+                    log('Saving audio and alignment...')
+                    num_test = config.num_test
+
+                    fetches = [
+                        model.inputs[:num_test],
+                        model.linear_outputs[:num_test],
+                        model.alignments[:num_test],
+                        test_model.inputs[:num_test],
+                        test_model.linear_outputs[:num_test],
+                        test_model.alignments[:num_test],
+                    ]
+                    feed_dict = {**model.get_dummy_feed_dict(), **test_model.get_dummy_feed_dict()}
+
+                    sequences, spectrograms, alignments, test_sequences, test_spectrograms, test_alignments = sess.run(
+                        fetches, feed_dict=feed_dict)
+
+                    # librosa는 ffmpeg가 있어야 한다.
+                    save_and_plot(sequences[:1], spectrograms[:1], alignments[:1], log_dir, step, loss,
+                                  "train")  # spectrograms: (num_test,200,1025), alignments: (num_test,encoder_length,decoder_length)
+                    save_and_plot(test_sequences, test_spectrograms, test_alignments, log_dir, step, loss, "test")
+
+        except Exception as e:
+            log('Exiting due to exception: %s' % e, slack=True)
+            traceback.print_exc()
+            coord.request_stop(e)
 
 def main():
     parser = argparse.ArgumentParser()
