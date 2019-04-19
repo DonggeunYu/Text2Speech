@@ -3,12 +3,13 @@ import tacotron.attention_wrapper as attention_wrapper
 import tacotron.rnn_wrappers as rnn_wrappers
 
 from text.symbols import symbols
-from utils.infolog import  log
+from utils.infolog import log
 from .modules import *
 from .helpers import TacoTestHelper, TacoTrainingHelper
 from .rnn_wrappers import AttentionWrapper, DecoderPrenetWrapper, ConcatOutputAndAttentionWrapper,BahdanauMonotonicAttention_hccho,LocationSensitiveAttention,GmmAttention
 from utils.core_rnn_cell import OutputProjectionWrapper
-from tensorflow.keras.layers import GRUCell, StackedRNNCells
+from utils.core_rnn_cell import GRUCell
+from tensorflow.compat.v1.keras.layers import StackedRNNCells
 from tensorflow.compat.v1.nn.rnn_cell import ResidualWrapper
 class Tacotron():
     def __init__(self, hparams):
@@ -112,44 +113,42 @@ class Tacotron():
                                                                       name="manual_alignments", )
 
             # single: attention_size = 128
-            if hp.attention_type == 'bah_mon':
-                attention_mechanism = attention_wrapper.BahdanauMonotonicAttention(hp.attention_size, encoder_outputs,
+            if hp['attention_type'] == 'bah_mon':
+                attention_mechanism = attention_wrapper.BahdanauMonotonicAttention(hp['attention_size'], encoder_outputs,
                                                                      memory_sequence_length=input_lengths,
                                                                      normalize=False)
-            elif hp.attention_type == 'bah_mon_norm':  # hccho 추가
-                attention_mechanism = attention_wrapper.BahdanauMonotonicAttention(hp.attention_size, encoder_outputs,
+            elif hp['attention_type'] == 'bah_mon_norm':  # hccho 추가
+                attention_mechanism = attention_wrapper.BahdanauMonotonicAttention(hp['attention_size'], encoder_outputs,
                                                                      memory_sequence_length=input_lengths,
                                                                      normalize=True)
-            elif hp.attention_type == 'loc_sen':  # Location Sensitivity Attention
-                attention_mechanism = rnn_wrappers.LocationSensitiveAttention(hp.attention_size, encoder_outputs,
+            elif hp['attention_type'] == 'loc_sen':  # Location Sensitivity Attention
+                attention_mechanism = rnn_wrappers.LocationSensitiveAttention(hp['attention_size'], encoder_outputs,
                                                                      memory_sequence_length=input_lengths)
-            elif hp.attention_type == 'gmm':  # GMM Attention
-                attention_mechanism = rnn_wrappers.GmmAttention(hp.attention_size, memory=encoder_outputs,
+            elif hp['attention_type'] == 'gmm':  # GMM Attention
+                attention_mechanism = rnn_wrappers.GmmAttention(hp['attention_size'], memory=encoder_outputs,
                                                        memory_sequence_length=input_lengths)
-            elif hp.attention_type == 'bah_mon_norm_hccho':
-                attention_mechanism = rnn_wrappers.BahdanauMonotonicAttention_hccho(hp.attention_size, encoder_outputs,
+            elif hp['attention_type'] == 'bah_mon_norm_hccho':
+                attention_mechanism = rnn_wrappers.BahdanauMonotonicAttention_hccho(hp['attention_size'], encoder_outputs,
                                                                            normalize=True)
-            elif hp.attention_type == 'bah_norm':
-                attention_mechanism = attention_wrapper.BahdanauAttention(hp.attention_size, encoder_outputs,
+            elif hp['attention_type'] == 'bah_norm':
+                attention_mechanism = attention_wrapper.BahdanauAttention(hp['attention_size'], encoder_outputs,
                                                             memory_sequence_length=input_lengths, normalize=True)
-            elif hp.attention_type == 'luong_scaled':
-                attention_mechanism = attention_wrapper.LuongAttention(hp.attention_size, encoder_outputs,
+            elif hp['attention_type'] == 'luong_scaled':
+                attention_mechanism = attention_wrapper.LuongAttention(hp['attention_size'], encoder_outputs,
                                                          memory_sequence_length=input_lengths, scale=True)
-            elif hp.attention_type == 'luong':
-                attention_mechanism = attention_wrapper.LuongAttention(hp.attention_size, encoder_outputs,
+            elif hp['attention_type'] == 'luong':
+                attention_mechanism = attention_wrapper.LuongAttention(hp['attention_size'], encoder_outputs,
                                                          memory_sequence_length=input_lengths)
-            elif hp.attention_type == 'bah':
-                attention_mechanism = attention_wrapper.BahdanauAttention(hp.attention_size, encoder_outputs,
+            elif hp['attention_type'] == 'bah':
+                attention_mechanism = attention_wrapper.BahdanauAttention(hp['attention_size'], encoder_outputs,
                                                             memory_sequence_length=input_lengths)
             else:
                 raise Exception(" [!] Unkown attention type: {}".format(hp.attention_type))
 
             # DecoderPrenetWrapper, attention_mechanism을 결합하여 AttentionWrapper를 만든다.
             # carpedm20은  tensorflow 소스를코드를 가져와서 AttentionWrapper를 새로 구현했지만,  keith Ito는 tensorflow AttentionWrapper를 그냥 사용했다.
-            attention_cell = rnn_wrappers.AttentionWrapper(tf.keras.layers.GRUCell.GRUCell(hp.attention_state_size), attention_mechanism,
-                                                self.is_manual_attention, self.manual_alignments,
-                                                initial_cell_state=attention_rnn_init_state, alignment_history=True,
-                                                output_attention=False)  # output_attention=False 에 주목, attention_layer_size에 값을 넣지 않았다. 그래서 attention = contex vector가 된다.
+            attention_cell = rnn_wrappers.AttentionWrapper(GRUCell(hp['attention_state_size']),attention_mechanism, self.is_manual_attention,self.manual_alignments,
+                                              initial_cell_state=attention_rnn_init_state,alignment_history=True,output_attention=False)  # output_attention=False 에 주목, attention_layer_size에 값을 넣지 않았다. 그래서 attention = contex vector가 된다.
 
             # attention_state_size = 256
             dec_prenet_outputs = DecoderPrenetWrapper(attention_cell, speaker_embed, is_training,
@@ -166,7 +165,7 @@ class Tacotron():
 
             # Decoder (layers specified bottom to top):  dec_rnn_size= 256
             cells = [tf.keras.layers.OutputProjectionWrapper(concat_cell,
-                                                hp.dec_rnn_size)]  # OutputProjectionWrapper는 논문에 언급이 없는 것 같은데...
+                                                hp.dec_rnn_size)]  # OutputPirojectionWrapper는 논문에 언급이 없는 것 같은데...
             for _ in range(hp.dec_layer_num):  # hp.dec_layer_num = 2
                 cells.append(ResidualWrapper(GRUCell(hp.dec_rnn_size)))
 

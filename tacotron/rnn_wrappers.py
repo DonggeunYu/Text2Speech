@@ -1,7 +1,6 @@
-# coding: utf-8
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import SimpleRNNCell
+from tensorflow.compat.v1.nn.rnn_cell import RNNCell
 from tensorflow.python.ops import rnn_cell_impl
 # from tensorflow.contrib.data.python.util import nest
 from tensorflow import nest
@@ -17,7 +16,7 @@ import functools
 _zero_state_tensors = rnn_cell_impl._zero_state_tensors
 
 
-class AttentionWrapper(SimpleRNNCell):
+class AttentionWrapper(RNNCell):
     """Wraps another `RNNCell` with attention.
     """
 
@@ -148,9 +147,8 @@ class AttentionWrapper(SimpleRNNCell):
             self._attention_layer_size = sum(attention_layer_sizes)
         else:
             self._attention_layers = None
-            self._attention_layer_size = sum(
-                attention_mechanism.values.get_shape()[-1].value
-                for attention_mechanism in attention_mechanisms)
+            print('11', attention_mechanisms[0].values.get_shape()[-1])
+            self._attention_layer_size = sum(attention_mechanism.values.get_shape()[-1].value for attention_mechanism in attention_mechanisms)
 
         self._cell = cell
         self._attention_mechanisms = attention_mechanisms
@@ -402,7 +400,7 @@ def _compute_attention(attention_mechanism, cell_output, previous_alignments, at
     return attention, alignments, next_attention_state
 
 
-class DecoderPrenetWrapper(SimpleRNNCell):
+class DecoderPrenetWrapper(RNNCell):
     '''Runs RNN inputs through a prenet before sending them to the cell.'''
 
     #  input에 prenet을 먼저 적용하는 것 뿐이다.
@@ -438,9 +436,8 @@ class DecoderPrenetWrapper(SimpleRNNCell):
         return self._cell.zero_state(batch_size, dtype)
 
 
-class ConcatOutputAndAttentionWrapper(SimpleRNNCell):
+class ConcatOutputAndAttentionWrapper(RNNCell):
     '''Concatenates RNN cell output with the attention context vector.
-
     This is expected to wrap a cell wrapped with an AttentionWrapper constructed with
     attention_layer_size=None and output_attention=False. Such a cell's state will include an
     "attention" field that is the context vector.
@@ -474,7 +471,6 @@ class ConcatOutputAndAttentionWrapper(SimpleRNNCell):
 
 class BahdanauMonotonicAttention_hccho(_BaseMonotonicAttentionMechanism):
     """Monotonic attention mechanism with Bahadanau-style energy function.
-
     This type of attention enforces a monotonic constraint on the attention
     distributions; that is once the model attends to a given point in the memory
     it can't attend to any prior points at subsequence output timesteps.  It
@@ -483,7 +479,6 @@ class BahdanauMonotonicAttention_hccho(_BaseMonotonicAttentionMechanism):
     through a sigmoid, a learnable scalar bias parameter is applied after the
     score function and before the sigmoid.  Otherwise, it is equivalent to
     BahdanauAttention.  This approach is proposed in
-
     Colin Raffel, Minh-Thang Luong, Peter J. Liu, Ron J. Weiss, Douglas Eck,
     "Online and Linear-Time Attention by Enforcing Monotonic Alignments."
     ICML 2017.  https://arxiv.org/abs/1704.00784
@@ -502,7 +497,6 @@ class BahdanauMonotonicAttention_hccho(_BaseMonotonicAttentionMechanism):
                  dtype=None,
                  name="BahdanauMonotonicAttentionHccho"):
         """Construct the Attention mechanism.
-
         Args:
           num_units: The depth of the query mechanism.
           memory: The memory to query; usually the output of an RNN encoder.  This
@@ -548,14 +542,12 @@ class BahdanauMonotonicAttention_hccho(_BaseMonotonicAttentionMechanism):
 
     def __call__(self, query, state):
         """Score the query based on the keys and values.
-
         Args:
           query: Tensor of dtype matching `self.values` and shape
             `[batch_size, query_depth]`.
           state: Tensor of dtype matching `self.values` and shape
             `[batch_size, alignments_size]`
             (`alignments_size` is memory's `max_time`).
-
         Returns:
           alignments: Tensor of dtype matching `self.values` and shape
             `[batch_size, alignments_size]` (`alignments_size` is memory's
@@ -590,7 +582,6 @@ class LocationSensitiveAttention(BahdanauAttention):
 tion by jointly learning to align and translate,�� in Proceedings
 of ICLR, 2015."
     to use previous alignments as additional location features.
-
     This attention is described in:
     J. K. Chorowski, D. Bahdanau, D. Serdyuk, K. Cho, and Y. Ben-
 gio, �쏛ttention-based models for speech recognition,�� in Ad-
@@ -704,13 +695,11 @@ def _location_sensitive_score(W_query, W_fil, W_keys):
       gio, �쏛ttention-based models for speech recognition,�� in Ad-
       vances in Neural Information Processing Systems, 2015, pp.
       577��585.
-
     #############################################################################
                       hybrid attention (content-based + location-based)
                                                        f = F * 慣_{i-1}
        energy = dot(v_a, tanh(W_keys(h_enc) + W_query(h_dec) + W_fil(f) + b_a))
     #############################################################################
-
     Args:
             W_query: Tensor, shape '[batch_size, 1, attention_dim]' to compare to location features.
             W_location: processed previous alignments into location features, shape '[batch_size, max_time, attention_dim]'
@@ -739,12 +728,10 @@ def _smoothing_normalization(e):
       gio, �쏛ttention-based models for speech recognition,�� in Ad-
       vances in Neural Information Processing Systems, 2015, pp.
       577��585.
-
     ############################################################################
                                             Smoothing normalization function
                             a_{i, j} = sigmoid(e_{i, j}) / sum_j(sigmoid(e_{i, j}))
     ############################################################################
-
     Args:
             e: matrix [batch_size, max_time(memory_time)]: expected to be energy (score)
                     values of an attention mechanism

@@ -3,10 +3,12 @@
   <component name="ChangeListManager">
     <list default="true" id="a1f0317d-52d3-4fe4-83fe-2b26b002e289" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tacotron/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/tacotron/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/code_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tacotron/attention_wrapper.py" beforeDir="false" afterPath="$PROJECT_DIR$/tacotron/attention_wrapper.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tacotron/modules.py" beforeDir="false" afterPath="$PROJECT_DIR$/tacotron/modules.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tacotron/rnn_wrappers.py" beforeDir="false" afterPath="$PROJECT_DIR$/tacotron/rnn_wrappers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tacotron/tacotron.py" beforeDir="false" afterPath="$PROJECT_DIR$/tacotron/tacotron.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/train_tacotron.py" beforeDir="false" afterPath="$PROJECT_DIR$/train_tacotron.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/core_rnn_cell.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/core_rnn_cell.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -18,112 +20,91 @@
     <SUITE FILE_PATH="coverage/Text2Speech$symbols.coverage" NAME="symbols Coverage Results" MODIFIED="1549617083690" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tacotron/utils" />
     <SUITE FILE_PATH="coverage/Text2Speech$hparams.coverage" NAME="hparams Coverage Results" MODIFIED="1554002637578" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Text2Speech$preprocess.coverage" NAME="preprocess Coverage Results" MODIFIED="1554083866208" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Text2Speech$train_tacotron.coverage" NAME="train_tacotron Coverage Results" MODIFIED="1554821193788" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Text2Speech$train_tacotron.coverage" NAME="train_tacotron Coverage Results" MODIFIED="1554907845011" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Text2Speech$test.coverage" NAME="test Coverage Results" MODIFIED="1553512454210" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Text2Speech$test__1_.coverage" NAME="test (1) Coverage Results" MODIFIED="1553512477853" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/datasets" />
-    <SUITE FILE_PATH="coverage/Text2Speech$code_test.coverage" NAME="code_test Coverage Results" MODIFIED="1554688793492" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Text2Speech$code_test.coverage" NAME="code_test Coverage Results" MODIFIED="1554902507650" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/tacotron/tacotron.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="409">
-              <caret line="100" column="34" selection-start-line="100" selection-start-column="30" selection-end-line="100" selection-end-column="34" />
-              <folding>
-                <element signature="e#0#23#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/tacotron/modules.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="253">
-              <caret line="11" lean-forward="true" selection-start-line="11" selection-end-line="11" />
-              <folding>
-                <element signature="e#101#124#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/tacotron/__init__.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="322">
-              <caret line="16" column="26" selection-start-line="16" selection-start-column="26" selection-end-line="16" selection-end-column="26" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/utils/core_rnn_cell.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="5658">
-              <caret line="342" column="9" selection-start-line="342" selection-start-column="9" selection-end-line="342" selection-end-column="9" />
-              <folding>
-                <element signature="e#689#821#1" expanded="true" />
-                <element signature="e#822#860#0" expanded="true" />
-                <element signature="e#1785#2283#1" expanded="true" />
-                <element signature="e#4568#5183#1" expanded="true" />
-                <element signature="e#6713#7010#1" expanded="true" />
-                <element signature="e#7184#7926#1" expanded="true" />
-                <element signature="e#9733#10010#1" expanded="true" />
-                <element signature="e#10175#10729#1" expanded="true" />
-                <element signature="e#11793#12116#1" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/train_tacotron.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1943">
-              <caret line="113" selection-start-line="113" selection-end-line="113" />
-              <folding>
-                <element signature="e#0#15#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/code_test.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="115">
-              <caret line="5" column="16" selection-start-line="5" selection-start-column="16" selection-end-line="5" selection-end-column="16" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/utils/__init__.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="391">
-              <caret line="25" column="20" selection-start-line="25" selection-start-column="20" selection-end-line="25" selection-end-column="20" />
-              <folding>
-                <element signature="e#0#9#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/datasets/kss.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="437">
-              <caret line="37" selection-start-line="37" selection-end-line="37" />
-              <folding>
-                <element signature="e#0#9#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-    </leaf>
+    <splitter split-orientation="horizontal" split-proportion="0.5">
+      <split-first>
+        <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+          <file pinned="false" current-in-tab="true">
+            <entry file="file://$PROJECT_DIR$/code_test.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="579">
+                  <caret line="38" lean-forward="true" selection-start-line="38" selection-end-line="38" />
+                  <folding>
+                    <element signature="e#0#15#0" expanded="true" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file:///anaconda3/envs/conda/lib/python3.6/site-packages/tensorflow/python/keras/layers/wrappers.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="923">
+                  <caret line="373" column="4" selection-start-line="373" selection-start-column="4" selection-end-line="373" selection-end-column="4" />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/utils/__init__.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="391">
+                  <caret line="25" column="20" selection-start-line="25" selection-start-column="20" selection-end-line="25" selection-end-column="20" />
+                  <folding>
+                    <element signature="e#0#9#0" expanded="true" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/datasets/kss.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="437">
+                  <caret line="37" selection-start-line="37" selection-end-line="37" />
+                  <folding>
+                    <element signature="e#0#9#0" expanded="true" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+        </leaf>
+      </split-first>
+      <split-second>
+        <leaf>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/train_tacotron.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="342">
+                  <caret line="100" column="41" selection-start-line="100" selection-start-column="23" selection-end-line="100" selection-end-column="41" />
+                  <folding>
+                    <element signature="e#0#15#0" expanded="true" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="true">
+            <entry file="file://$PROJECT_DIR$/datasets/datafeeder_tacotron.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="-1376">
+                  <caret line="61" column="8" selection-start-line="61" selection-start-column="8" selection-end-line="61" selection-end-column="8" />
+                  <folding>
+                    <element signature="e#0#16#0" expanded="true" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+        </leaf>
+      </split-second>
+    </splitter>
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -134,18 +115,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>GRUCell</find>
-      <find>num_speakers</find>
-      <find>hparams</find>
-      <find>_enqueue_op</find>
-      <find>inputs</find>
-      <find>placeholder</find>
-      <find>'embedding</find>
-      <find>embedding</find>
-      <find>input</find>
-      <find>RNNcell</find>
-      <find>OutputProjectionWrapper</find>
-      <find>ResidualWrapper</find>
       <find>attention_w</find>
       <find>map</find>
       <find>attention_wrapper</find>
@@ -161,9 +130,21 @@
       <find>RNNCEll</find>
       <find>Helper</find>
       <find>print('a</find>
-      <find>highwaynet</find>
       <find>in</find>
       <find>initializer</find>
+      <find>GRUCell</find>
+      <find>tensor_</find>
+      <find>highwaynet</find>
+      <find>initial_cell_state</find>
+      <find>tensor_util</find>
+      <find>rnncell</find>
+      <find>units</find>
+      <find>name</find>
+      <find>GRU</find>
+      <find>attention_mechanism</find>
+      <find>_BaseMonotonicAttentionMechanism</find>
+      <find>AttentionWrapper</find>
+      <find>train</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -209,26 +190,26 @@
         <option value="$PROJECT_DIR$/contrib/rnn/python/ops/gru_ops.py" />
         <option value="$PROJECT_DIR$/contrib/seq2seq/python/ops/beam_search_ops.py" />
         <option value="$PROJECT_DIR$/contrib/rnn.py" />
-        <option value="$PROJECT_DIR$/tacotron/attention_wrapper.py" />
-        <option value="$PROJECT_DIR$/tacotron/rnn_wrappers.py" />
         <option value="$PROJECT_DIR$/utils/helper/decoder.py" />
         <option value="$PROJECT_DIR$/utils/helper/helper.py" />
         <option value="$PROJECT_DIR$/tacotron/helpers.py" />
         <option value="$PROJECT_DIR$/datasets/datafeeder_tacotron.py" />
         <option value="$PROJECT_DIR$/datasets/kss.py" />
-        <option value="$PROJECT_DIR$/utils/core_rnn_cell.py" />
         <option value="$PROJECT_DIR$/utils/__init__.py" />
-        <option value="$PROJECT_DIR$/code_test.py" />
         <option value="$PROJECT_DIR$/tacotron/__init__.py" />
         <option value="$PROJECT_DIR$/train_tacotron.py" />
-        <option value="$PROJECT_DIR$/tacotron/tacotron.py" />
         <option value="$PROJECT_DIR$/tacotron/modules.py" />
+        <option value="$PROJECT_DIR$/utils/core_rnn_cell.py" />
+        <option value="$PROJECT_DIR$/tacotron/tacotron.py" />
+        <option value="$PROJECT_DIR$/tacotron/attention_wrapper.py" />
+        <option value="$PROJECT_DIR$/tacotron/rnn_wrappers.py" />
+        <option value="$PROJECT_DIR$/code_test.py" />
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds">
-    <option name="x" value="841" />
-    <option name="width" value="839" />
+  <component name="ProjectFrameBounds" extendedState="6" fullScreen="true">
+    <option name="x" value="840" />
+    <option name="width" value="840" />
     <option name="height" value="1050" />
   </component>
   <component name="ProjectLevelVcsManager">
@@ -248,16 +229,6 @@
             </path>
             <path>
               <item name="Text2Speech" type="b2602c69:ProjectViewProjectNode" />
-              <item name="Text2Speech" type="462c0819:PsiDirectoryNode" />
-              <item name="tacotron" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="Text2Speech" type="b2602c69:ProjectViewProjectNode" />
-              <item name="Text2Speech" type="462c0819:PsiDirectoryNode" />
-              <item name="utils" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="Text2Speech" type="b2602c69:ProjectViewProjectNode" />
               <item name="External Libraries" type="cb654da1:ExternalLibrariesNode" />
             </path>
           </expand>
@@ -268,6 +239,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
@@ -440,23 +412,27 @@
       <workItem from="1554440640857" duration="1402000" />
       <workItem from="1554465150033" duration="14922000" />
       <workItem from="1554647322000" duration="3273000" />
-      <workItem from="1554814489392" duration="3888000" />
+      <workItem from="1554814489392" duration="6007000" />
+      <workItem from="1554884802890" duration="384000" />
+      <workItem from="1554889902270" duration="7040000" />
+      <workItem from="1555247357551" duration="1667000" />
+      <workItem from="1555660149135" duration="792000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="191144000" />
+    <option name="totallyTimeSpent" value="203146000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="841" y="0" width="839" height="1050" extended-state="0" />
+    <frame x="0" y="0" width="1680" height="1050" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49712643" visible="true" weight="0.22584693" />
+      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49712643" weight="0.24436091" />
       <window_info id="Structure" order="1" sideWeight="0.50287354" side_tool="true" weight="0.38554215" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.32847425" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.14498511" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.14399205" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.91626793" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -512,16 +488,6 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/text/en_numbers.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="215">
-          <caret line="63" column="47" lean-forward="true" selection-start-line="63" selection-start-column="47" selection-end-line="63" selection-end-column="47" />
-          <folding>
-            <element signature="e#0#14#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///anaconda3/envs/conda/lib/python3.6/concurrent/futures/_base.py" />
     <entry file="file:///anaconda3/envs/conda/lib/python3.6/concurrent/futures/process.py" />
     <entry file="file://$PROJECT_DIR$/text/korean.py">
@@ -663,69 +629,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tacotron/attention_wrapper.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="184">
-          <caret line="8" column="20" selection-start-line="8" selection-start-column="20" selection-end-line="8" selection-end-column="20" />
-          <folding>
-            <element signature="e#741#779#0" expanded="true" />
-            <element signature="e#2207#2756#1" expanded="true" />
-            <element signature="e#5121#5316#1" expanded="true" />
-            <element signature="e#5623#7121#1" expanded="true" />
-            <element signature="e#8985#9504#1" expanded="true" />
-            <element signature="e#9644#10502#1" expanded="true" />
-            <element signature="e#11802#12316#1" expanded="true" />
-            <element signature="e#12586#13657#1" expanded="true" />
-            <element signature="e#14408#14915#1" expanded="true" />
-            <element signature="e#15196#16143#1" expanded="true" />
-            <element signature="e#17248#17924#1" expanded="true" />
-            <element signature="e#18201#19267#1" expanded="true" />
-            <element signature="e#19978#20485#1" expanded="true" />
-            <element signature="e#20848#21476#1" expanded="true" />
-            <element signature="e#21802#24025#1" expanded="true" />
-            <element signature="e#26384#27868#1" expanded="true" />
-            <element signature="e#28410#28653#1" expanded="true" />
-            <element signature="e#28710#29117#1" expanded="true" />
-            <element signature="e#29348#30205#1" expanded="true" />
-            <element signature="e#30595#31958#1" expanded="true" />
-            <element signature="e#32808#33315#1" expanded="true" />
-            <element signature="e#33906#34600#1" expanded="true" />
-            <element signature="e#34983#36338#1" expanded="true" />
-            <element signature="e#37177#37684#1" expanded="true" />
-            <element signature="e#38341#39007#1" expanded="true" />
-            <element signature="e#39042#39571#1" expanded="true" />
-            <element signature="e#39673#39923#1" expanded="true" />
-            <element signature="e#41826#44109#1" expanded="true" />
-            <element signature="e#48046#48444#1" expanded="true" />
-            <element signature="e#50894#52157#1" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tacotron/rnn_wrappers.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="368">
-          <caret line="16" column="39" selection-start-line="16" selection-start-column="39" selection-end-line="16" selection-end-column="39" />
-          <folding>
-            <element signature="e#16#34#0" expanded="true" />
-            <element signature="e#1211#5081#1" expanded="true" />
-            <element signature="e#9611#10038#1" expanded="true" />
-            <element signature="e#10376#10538#1" expanded="true" />
-            <element signature="e#11197#11935#1" expanded="true" />
-            <element signature="e#14183#15533#1" expanded="true" />
-            <element signature="e#21331#21636#1" expanded="true" />
-            <element signature="e#22563#23444#1" expanded="true" />
-            <element signature="e#23885#25439#1" expanded="true" />
-            <element signature="e#26384#26921#1" expanded="true" />
-            <element signature="e#28294#28936#1" expanded="true" />
-            <element signature="e#29195#31134#1" expanded="true" />
-            <element signature="e#32190#32825#1" expanded="true" />
-            <element signature="e#34567#35701#1" expanded="true" />
-            <element signature="e#36260#37212#1" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/utils/helper/helper.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="546">
@@ -775,16 +678,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/datasets/datafeeder_tacotron.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="320">
-          <caret line="116" lean-forward="true" selection-start-line="116" selection-end-line="116" />
-          <folding>
-            <element signature="e#0#16#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tacotron/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="322">
@@ -792,37 +685,29 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/utils/core_rnn_cell.py">
+    <entry file="file:///anaconda3/envs/conda/lib/python3.6/site-packages/tensorflow/python/ops/variable_scope.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="5658">
-          <caret line="342" column="9" selection-start-line="342" selection-start-column="9" selection-end-line="342" selection-end-column="9" />
+        <state relative-caret-position="274">
+          <caret line="905" selection-start-line="905" selection-end-line="905" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tacotron/tacotron.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2875">
+          <caret line="137" column="28" selection-start-line="137" selection-start-column="28" selection-end-line="137" selection-end-column="28" />
           <folding>
-            <element signature="e#689#821#1" expanded="true" />
-            <element signature="e#822#860#0" expanded="true" />
-            <element signature="e#1785#2283#1" expanded="true" />
-            <element signature="e#4568#5183#1" expanded="true" />
-            <element signature="e#6713#7010#1" expanded="true" />
-            <element signature="e#7184#7926#1" expanded="true" />
-            <element signature="e#9733#10010#1" expanded="true" />
-            <element signature="e#10175#10729#1" expanded="true" />
-            <element signature="e#11793#12116#1" expanded="true" />
+            <element signature="e#0#23#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/code_test.py">
+    <entry file="file://$PROJECT_DIR$/tacotron/rnn_wrappers.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="115">
-          <caret line="5" column="16" selection-start-line="5" selection-start-column="16" selection-end-line="5" selection-end-column="16" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/utils/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="391">
-          <caret line="25" column="20" selection-start-line="25" selection-start-column="20" selection-end-line="25" selection-end-column="20" />
+        <state relative-caret-position="1771">
+          <caret line="152" column="21" selection-start-line="152" selection-start-column="21" selection-end-line="152" selection-end-column="21" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#18#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -837,39 +722,82 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/utils/core_rnn_cell.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="529">
+          <caret line="28" column="43" selection-start-line="28" selection-start-column="43" selection-end-line="28" selection-end-column="43" />
+          <folding>
+            <element signature="e#689#821#1" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tacotron/modules.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="923">
+          <caret line="80" selection-start-line="80" selection-end-line="80" />
+          <folding>
+            <element signature="e#101#124#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tacotron/attention_wrapper.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="923">
+          <caret line="760" column="20" selection-start-line="760" selection-start-column="20" selection-end-line="760" selection-end-column="20" />
+          <folding>
+            <element signature="e#741#779#0" expanded="true" />
+            <element signature="e#30395#30799#1" expanded="true" />
+            <element signature="e#31030#31885#1" expanded="true" />
+            <element signature="e#32293#33750#1" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/utils/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="391">
+          <caret line="25" column="20" selection-start-line="25" selection-start-column="20" selection-end-line="25" selection-end-column="20" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///anaconda3/envs/conda/lib/python3.6/site-packages/tensorflow/python/keras/layers/wrappers.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="923">
+          <caret line="373" column="4" selection-start-line="373" selection-start-column="4" selection-end-line="373" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/train_tacotron.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1943">
-          <caret line="113" selection-start-line="113" selection-end-line="113" />
+        <state relative-caret-position="342">
+          <caret line="100" column="41" selection-start-line="100" selection-start-column="23" selection-end-line="100" selection-end-column="41" />
           <folding>
             <element signature="e#0#15#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tacotron/tacotron.py">
+    <entry file="file://$PROJECT_DIR$/datasets/datafeeder_tacotron.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="409">
-          <caret line="100" column="34" selection-start-line="100" selection-start-column="30" selection-end-line="100" selection-end-column="34" />
+        <state relative-caret-position="-1376">
+          <caret line="61" column="8" selection-start-line="61" selection-start-column="8" selection-end-line="61" selection-end-column="8" />
           <folding>
-            <element signature="e#0#23#0" expanded="true" />
+            <element signature="e#0#16#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file:///anaconda3/envs/conda/lib/python3.6/site-packages/tensorflow/python/ops/variable_scope.py">
+    <entry file="file://$PROJECT_DIR$/code_test.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="274">
-          <caret line="905" selection-start-line="905" selection-end-line="905" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tacotron/modules.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="253">
-          <caret line="11" lean-forward="true" selection-start-line="11" selection-end-line="11" />
+        <state relative-caret-position="579">
+          <caret line="38" lean-forward="true" selection-start-line="38" selection-end-line="38" />
           <folding>
-            <element signature="e#101#124#0" expanded="true" />
+            <element signature="e#0#15#0" expanded="true" />
           </folding>
         </state>
       </provider>

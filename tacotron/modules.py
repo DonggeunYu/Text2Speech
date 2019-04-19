@@ -2,6 +2,7 @@
 # Code based on https://github.com/keithito/tacotron/blob/master/models/tacotron.py
 
 import tensorflow as tf
+from tensorflow.keras.layers import GRUCell
 from tensorflow.python.ops import init_ops
 from tensorflow.python.layers import core
 
@@ -68,7 +69,7 @@ def cbhg(inputs, input_lengths, is_training, bank_size, bank_channel_size, maxpo
             initial_state_fw, initial_state_bw = None, None
 
         cell_fw, cell_bw = GRUCell(rnn_size), GRUCell(rnn_size)
-        outputs, states = tf.nn.bidirectional_dynamic_rnn(cell_fw, cell_bw,rnn_input,sequence_length=input_lengths,
+        outputs, states = tf.compat.v1.nn.bidirectional_dynamic_rnn(cell_fw, cell_bw,rnn_input,sequence_length=input_lengths,
                                                           initial_state_fw=initial_state_fw,initial_state_bw=initial_state_bw,dtype=tf.float32)
         return tf.concat(outputs, axis=2)    # Concat forward and backward
 
@@ -80,7 +81,6 @@ def batch_tile(tensor, batch_size):
 
 
 def highwaynet(inputs, scope):
-    print(scope)
     highway_dim = int(inputs.get_shape()[-1])
 
     with tf.compat.v1.variable_scope(scope):
