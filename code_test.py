@@ -17,6 +17,8 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 log = infolog.log
 
+
+
 def train(log_dir, config):
     config.data_path = config.data_paths
 
@@ -36,6 +38,8 @@ def train(log_dir, config):
     log(' [*] Using model: %s' % config.model_dir)  # 'logdir-tacotron\\moon_2018-08-28_13-06-42'
 
 
+
+    # Set up DataFeeder:
 
 def main():
     parser = argparse.ArgumentParser()
