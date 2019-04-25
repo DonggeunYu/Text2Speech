@@ -126,3 +126,22 @@ def remove_file(path):
 
 def get_time():
     return datetime.now().strftime("%Y-%m-%d_H-%M-%S")
+
+def str2bool(v):
+    return v.lower() in ('true', '1')
+
+def parallel_run(fn, items, desc="", parallel=True):
+    results = []
+
+    if parallel:
+        with closing(Pool(10)) as pool:
+            for out in tqdm(pool.imap_unordered(fn, items), total=len(items), desc=desc):
+                if out is not None:
+                    results.append(out)
+    else:
+        for item in tqdm(items, total=len(items), desc=desc):
+            out = fn(item)
+            if out is not None:
+                results.append(out)
+
+    return results
