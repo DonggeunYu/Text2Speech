@@ -1,6 +1,8 @@
 # coding: utf-8
 # Code based on https://github.com/keithito/tacotron/blob/master/models/tacotron.py
 
+import torch
+import torch.nn as nn
 import tensorflow as tf
 from tensorflow.keras.layers import GRUCell
 from tensorflow.python.ops import init_ops
@@ -11,6 +13,25 @@ def get_embed(inputs, num_inputs, embed_size, name):  # speaker_id, self.num_spe
     embed_table = tf.get_variable(name, [num_inputs, embed_size], dtype=tf.float32, initializer=tf.truncated_normal_initializer(stddev=0.1))
     return tf.nn.embedding_lookup(embed_table, inputs)
 
+class prenet(nn.Module):
+    '''
+        FC-256-ReLU -> Dropout(0.5) ->
+        FC-128-ReLU -> Dropout(0.5)
+    '''
+    def __init__(self, in_dim, sizes):
+        super(prenet, self).__init__()
+        in_sizes = [in_dim] + sizes[:-1]
+        # in_size: [256, 256]
+        self.layers = nn.ModuleList(
+            [nn.Linear(in_size, out_size)
+             for (in_size, out_size) in zip(in_sizes, sizes)])
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.5)
+    def forward(self, inputs):
+        for linear in self.layers:
+            inputs = self.dropout(self.relu(linear(inputs)))
+
+        return inputs
 
 def prenet(inputs, is_training, layer_sizes, drop_prob, scope=None):
     x = inputs  # 3차원 array(batch,seq_length,embedding_dim)   ==> (batch,seq_length,256)  ==> (batch,seq_length,128)
@@ -22,56 +43,106 @@ def prenet(inputs, is_training, layer_sizes, drop_prob, scope=None):
             x = tf.compat.v1.layers.dropout(dense, rate=drop_rate, training=is_training, name='dropout_%d' % (i+1))
     return x
 
-def cbhg(inputs, input_lengths, is_training, bank_size, bank_channel_size, maxpool_width, highway_depth,
-         rnn_size, proj_sizes, proj_width, scope,before_highway=None, encoder_rnn_init_state=None):
-    # inputs: (N,T_in, 128), bank_size: 16
-    batch_size = tf.shape(inputs)[0]
-    with tf.compat.v1.variable_scope(scope):
-        with tf.compat.v1.variable_scope('conv_bank'):
-            # Convolution bank: concatenate on the last axis
-            # to stack channels from all convolutions
-            conv_fn = lambda k: conv1d(inputs, k, bank_channel_size, tf.nn.relu, is_training, 'conv1d_%d' % k)  # bank_channel_size =128
+class cbhg(nn.Module):
+    def __init__(self, in_dim, K=16, projections=[128, 128]):
+        super(cbhg, self).__init__()
+        self.in_dim = in_dim
+        self.relu = nn.ReLU()
+        self.conv1d_banks = nn.ModuleList([BatchNormConv1d(in_dim, in_dim, k, stride=1, padding='same', activation=self.relu)
+                                      for k in range(1, k + 1)])
+        self.max_pool1d = nn.MaxPool1d(kernel_size=2, stride=1, padding='same')
 
-            conv_outputs = tf.concat( [conv_fn(k) for k in range(1, bank_size+1)], axis=-1,)  # ==> (N,T_in,128*bank_size)
+        in_sizes = [K * in_dim] + projections[:-1]
+        activations = [self.relu] * (len(projections) - 1) + [None]
+        self.conv1d_projections = nn.ModuleList(
+            [BatchNormConv1d(in_size, out_size, kernel_size=3, stride=1,
+                             padding=1, activation=ac)
+             for (in_size, out_size, ac) in zip(
+                in_sizes, projections, activations)])
 
-        # Maxpooling:
-        maxpool_output = tf.compat.v1.layers.max_pooling1d(conv_outputs,pool_size=maxpool_width,strides=1,padding='same')  # maxpool_width = 2
+        self.pre_highway = nn.Linear(projections[-1], in_dim, bias=False)
 
-        # Two projection layers:
-        proj_out = maxpool_output
-        for idx, proj_size in enumerate(proj_sizes):   # [f(128), f(128)],  post: [f(256), f(80)]
-            activation_fn = None if idx == len(proj_sizes) - 1 else tf.nn.relu
-            proj_out = conv1d(proj_out, proj_width, proj_size, activation_fn,is_training, 'proj_{}'.format(idx + 1))  # proj_width = 3
+        self.highways = nn.ModuleList([Highway(in_dim, in_dim) for _ in range(4)])
 
-        # Residual connection:
-        if before_highway is not None: # multi-sperker mode
-            expanded_before_highway = tf.expand_dims(before_highway, [1])
-            tiled_before_highway = tf.tile(expanded_before_highway, [1, tf.shape(proj_out)[1], 1])
+        self.gru = nn.GRU(
+            in_dim, in_dim, 1, batch_first=True, bidirectional=True)
 
-            highway_input = proj_out + inputs + tiled_before_highway
-        else: # single model
-            highway_input = proj_out + inputs
+        def forward(self, inputs, input_lengths=None):
+            # (B, T_in, in_dim)
+            x = inputs
 
-        # Handle dimensionality mismatch:
-        if highway_input.shape[2] != rnn_size:  # rnn_size = 128
-            highway_input = tf.compat.v1.layers.dense(highway_input, rnn_size)
+            # Needed to perform conv1d on time-axis
+            # (B, in_dim, T_in)
+            if x.size(-1) == self.in_dim:
+                x = x.transpose(1, 2)
 
-        # 4-layer HighwayNet:
-        for idx in range(highway_depth):
-            highway_input = highwaynet(highway_input, 'highway_%d' % (idx+1))
+            T = x.size(-1)
 
-        rnn_input = highway_input
+            # (B, in_dim*K, T_in)
+            # Concat conv1d bank outputs
+            x = torch.cat([conv1d(x)[:, :, :T] for conv1d in self.conv1d_banks], dim=1)
+            assert x.size(1) == self.in_dim * len(self.conv1d_banks)
+            x = self.max_pool1d(x)[:, :, :T]
 
-        # Bidirectional RNN
-        if encoder_rnn_init_state is not None:
-            initial_state_fw, initial_state_bw = tf.split(encoder_rnn_init_state, 2, 1)
-        else:  # single mode
-            initial_state_fw, initial_state_bw = None, None
+            for conv1d in self.conv1d_projections:
+                x = conv1d(x)
 
-        cell_fw, cell_bw = GRUCell(rnn_size), GRUCell(rnn_size)
-        outputs, states = tf.compat.v1.nn.bidirectional_dynamic_rnn(cell_fw, cell_bw,rnn_input,sequence_length=input_lengths,
-                                                          initial_state_fw=initial_state_fw,initial_state_bw=initial_state_bw,dtype=tf.float32)
-        return tf.concat(outputs, axis=2)    # Concat forward and backward
+            # (B, T_in, in_dim)
+            # Back to the original shape
+            x = x.transpose(1, 2)
+
+            if x.size(-1) != self.in_dim:
+                x = self.pre_highway(x)
+
+            # Residual connection
+            x += inputs
+            for highway in self.highways:
+                x = highway(x)
+
+            if input_lengths is not None:
+                x = nn.utils.rnn.pack_padded_sequence(
+                    x, input_lengths, batch_first=True)
+
+            # (B, T_in, in_dim*2)
+            outputs, _ = self.gru(x)
+
+            if input_lengths is not None:
+                outputs, _ = nn.utils.rnn.pad_packed_sequence(
+                    outputs, batch_first=True)
+
+            return outputs
+
+class BatchNormConv1d(nn.Module):
+    def __init__(self, in_dim, out_dim, kernel_size, stride, padding,
+                 activation=None):
+        super(BatchNormConv1d, self).__init__()
+        self.conv1d = nn.Conv1d(in_dim, out_dim,
+                                kernel_size=kernel_size,
+                                stride=stride, padding=padding, bias=False)
+        # Following tensorflow's default parameters
+        self.bn = nn.BatchNorm1d(out_dim, momentum=0.99, eps=1e-3)
+        self.activation = activation
+
+    def forward(self, x):
+        x = self.conv1d(x)
+        if self.activation is not None:
+            x = self.activation(x)
+        return self.bn(x)
+
+class Highway(nn.Module):
+    def __init__(self, in_size, out_size):
+        super(Highway, self).__init__()
+        self.H = nn.Linear(in_size, out_size)
+        self.H.bias.data.zero_()
+        self.T = nn.Linear(in_size, out_size)
+        self.T.bias.data.fill_(-1)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, inputs):
+        H = self.relu(self.H(inputs))
+        T = self.sigmoid(self.T(inputs))
+        return H * T + inputs * (1.0 - T)
 
 
 def batch_tile(tensor, batch_size):
@@ -79,18 +150,3 @@ def batch_tile(tensor, batch_size):
     return tf.tile(expaneded_tensor, \
             [batch_size] + [1 for _ in tensor.get_shape()])
 
-
-def highwaynet(inputs, scope):
-    highway_dim = int(inputs.get_shape()[-1])
-
-    with tf.compat.v1.variable_scope(scope):
-        H = tf.compat.v1.layers.dense(inputs, units=highway_dim, activation=tf.nn.relu,name='H')
-        T = tf.compat.v1.layers.dense(inputs, units=highway_dim, activation=tf.nn.sigmoid,name='T', bias_initializer=init_ops.constant_initializer(-1.0))
-        return H * T + inputs * (1.0 - T)
-
-
-def conv1d(inputs, kernel_size, channels, activation, is_training, scope):
-    with tf.compat.v1.variable_scope(scope):
-        # strides=1, padding = same 이므로, kernel_size에 상관없이 크기가 유지된다.
-        conv1d_output = tf.compat.v1.layers.conv1d(inputs,filters=channels,kernel_size=kernel_size,activation=activation,padding='same') # padding이 same이라 kenel size가 달라도 concat된다.
-        return tf.compat.v1.layers.batch_normalization(conv1d_output, training=is_training)

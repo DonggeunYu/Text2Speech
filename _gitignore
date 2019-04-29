@@ -1,0 +1,5 @@
+datasets/kss/
+training_data/
+data/
+logdir-tacotron/
+**/__pycache__/
