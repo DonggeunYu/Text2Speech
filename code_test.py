@@ -1,2 +1,4 @@
-activations = [1] * (len([128, 128]) - 1) + [None]
-print(activations)
+from tqdm import tqdm
+a = 0
+for i, x in tqdm(enumerate(range(100))):
+    a = i + a

@@ -13,13 +13,13 @@ def get_embed(inputs, num_inputs, embed_size, name):  # speaker_id, self.num_spe
     embed_table = tf.get_variable(name, [num_inputs, embed_size], dtype=tf.float32, initializer=tf.truncated_normal_initializer(stddev=0.1))
     return tf.nn.embedding_lookup(embed_table, inputs)
 
-class prenet(nn.Module):
+class Prenet(nn.Module):
     '''
         FC-256-ReLU -> Dropout(0.5) ->
         FC-128-ReLU -> Dropout(0.5)
     '''
     def __init__(self, in_dim, sizes):
-        super(prenet, self).__init__()
+        super(Prenet, self).__init__()
         in_sizes = [in_dim] + sizes[:-1]
         # in_size: [256, 256]
         self.layers = nn.ModuleList(
@@ -33,23 +33,14 @@ class prenet(nn.Module):
 
         return inputs
 
-def prenet(inputs, is_training, layer_sizes, drop_prob, scope=None):
-    x = inputs  # 3차원 array(batch,seq_length,embedding_dim)   ==> (batch,seq_length,256)  ==> (batch,seq_length,128)
-    drop_rate = drop_prob if is_training else 0.0
-    #print('drop_rate',drop_rate)
-    with tf.compat.v1.variable_scope(scope or 'prenet'):
-        for i, size in enumerate(layer_sizes):  # [f(256), f(128)]
-            dense = tf.compat.v1.layers.dense(x, units=size, activation=tf.nn.relu, name='dense_%d' % (i+1))
-            x = tf.compat.v1.layers.dropout(dense, rate=drop_rate, training=is_training, name='dropout_%d' % (i+1))
-    return x
 
-class cbhg(nn.Module):
+class CBHG(nn.Module):
     def __init__(self, in_dim, K=16, projections=[128, 128]):
-        super(cbhg, self).__init__()
+        super(CBHG, self).__init__()
         self.in_dim = in_dim
         self.relu = nn.ReLU()
         self.conv1d_banks = nn.ModuleList([BatchNormConv1d(in_dim, in_dim, k, stride=1, padding='same', activation=self.relu)
-                                      for k in range(1, k + 1)])
+                                      for k in range(1, K + 1)])
         self.max_pool1d = nn.MaxPool1d(kernel_size=2, stride=1, padding='same')
 
         in_sizes = [K * in_dim] + projections[:-1]

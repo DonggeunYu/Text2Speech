@@ -31,27 +31,21 @@ def get_path_dict(data_dirs, hparams, config, data_type, n_test=None, rng=np.ran
         if data_type == 'train':
             rng.shuffle(
                 paths)  # ['datasets/moon\\data\\012.0287.npz', 'datasets/moon\\data\\004.0215.npz', 'datasets/moon\\data\\003.0149.npz', ...]
-
         if not config.skip_path_filter:
             items = parallel_run(get_frame, paths, desc="filter_by_min_max_frame_batch",
                                  parallel=True)  # [('datasets/moon\\data\\012.0287.npz', 130, 21), ('datasets/moon\\data\\003.0149.npz', 209, 37), ...]
 
             min_n_frame = hparams['reduction_factor'] * hparams['min_iters']  # 5*30
             max_n_frame = hparams['reduction_factor'] * hparams['max_iters'] - 1  # 5*200 - 5
-
             # 다음 단계에서 data가 많이 떨어져 나감. 글자수가 짧은 것들이 탈락됨.
             new_items = [(path, n) for path, n, n_tokens in items if
                          min_n_frame <= n <= max_n_frame and n_tokens >= hparams[
                              'min_tokens']]  # [('datasets/moon\\data\\004.0383.npz', 297), ('datasets/moon\\data\\003.0533.npz', 394),...]
-
             new_paths = [path for path, n in new_items]
             new_n_frames = [n for path, n in new_items]
 
             hours = frames_to_hours(new_n_frames, hparams)
 
-            log(' [{}] Loaded metadata for {} examples ({:.2f} hours)'.format(data_dir, len(new_n_frames), hours))
-            log(' [{}] Max length: {}'.format(data_dir, max(new_n_frames)))
-            log(' [{}] Min length: {}'.format(data_dir, min(new_n_frames)))
         else:
             new_paths = paths
 
@@ -65,6 +59,10 @@ def get_path_dict(data_dirs, hparams, config, data_type, n_test=None, rng=np.ran
 
         path_dict[
             data_dir] = new_paths  # ['datasets/moon\\data\\001.0621.npz', 'datasets/moon\\data\\003.0229.npz', ...]
+
+        log(' [{}] Loaded metadata for {} examples ({:.2f} hours)'.format(data_dir, len(new_n_frames), hours))
+        log(' [{}] Max length: {}'.format(data_dir, max(new_n_frames)))
+        log(' [{}] Min length: {}'.format(data_dir, min(new_n_frames)))
     return path_dict
 
 
@@ -146,28 +144,29 @@ class DataFeederTacotron():
                 examples.extend(example)
             examples.sort(key=lambda x: x[-1])  # 제일 마지막 기준이니까,  len(linear_target) 기준으로 정렬
 
-        self.len = examples.shape[0]
+        self.len = np.shape(examples)[0]
         examples_len = len(examples)
 
         self.input_data = [examples[i][0] for i in range(examples_len)]
-        self.loss_coeff = [examples[i][1] for i in range(examples_len)]
-        self.mel_target = [examples[i][2] for i in range(examples_len)]
-        self.linear_target = [examples[i][3] for i in range(examples_len)]
-        self.stop_token_target = [examples[i][4] for i in range(examples_len)]
+        self.input_data_len = [examples[i][1] for i in range(examples_len)]
+        self.loss_coeff = [examples[i][2] for i in range(examples_len)]
+        self.mel_target = [examples[i][3] for i in range(examples_len)]
+        self.linear_target = [examples[i][4] for i in range(examples_len)]
+        self.stop_token_target = [examples[i][5] for i in range(examples_len)]
         if self.is_multi_speaker:
-            self.id = [examples[i][5] for i in range(examples_len)]
-            self.linear_target_len = [examples[i][6] for i in range(examples_len)]
+            self.id = [examples[i][6] for i in range(examples_len)]
+            self.linear_target_len = [examples[i][7] for i in range(examples_len)]
         else:
-            self.linear_target_len = [examples[i][5] for i in range(examples_len)]
+            self.linear_target_len = [examples[i][6] for i in range(examples_len)]
 
         log('Generated %d batches of size %d in %.03f sec' % (len(examples) // 32, n, time.time() - start))
 
     def __getitem__(self, item):
         if self.is_multi_speaker:
-            return self.input_data[item], self.loss_coeff[item], self.mel_target[item], self.linear_target[item], \
+            return self.input_data[item], self.input_data_len[item], self.loss_coeff[item], self.mel_target[item], self.linear_target[item], \
                    self.stop_token_target[item], self.id[item], self.linear_target_len[item]
         else:
-            return self.input_data[item], self.loss_coeff[item], self.mel_target[item], self.linear_target[item], \
+            return self.input_data[item], self.input_data_len[item], self.loss_coeff[item], self.mel_target[item], self.linear_target[item], \
                    self.stop_token_target[item], self.linear_target_len[item]
 
     def __len__(self):
@@ -199,6 +198,7 @@ class DataFeederTacotron():
                 break
 
         input_data = data['tokens']  # 1-dim
+        input_data_len = len(input_data)
         mel_target = data['mel']
 
         if 'loss_coeff' in data:
@@ -211,7 +211,7 @@ class DataFeederTacotron():
 
         # multi-speaker가 아니면, speaker_id는 넘길 필요 없지만, 현재 구현이 좀 꼬여 있다. 그래서 무조건 넘긴다.
         if self.is_multi_speaker:
-            return [input_data, loss_coeff, mel_target, linear_target, stop_token_target, self.data_dir_to_id[data_dir],
+            return [input_data, input_data_len, loss_coeff, mel_target, linear_target, stop_token_target, self.data_dir_to_id[data_dir],
                     len(linear_target)]
         else:
-            return [input_data, loss_coeff, mel_target, linear_target, stop_token_target, len(linear_target)]
+            return [input_data, input_data_len, loss_coeff, mel_target, linear_target, stop_token_target, len(linear_target)]
