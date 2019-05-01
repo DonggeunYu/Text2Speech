@@ -228,7 +228,7 @@ def train_init(log_dir, config):
             exit()
 
     # Setup tensorboard logger
-    tensorboard_logger.configure("log/run-test")
+    tensorboard_logger.configure("tensorboard_log/run-test")
 
     # Train!
     try:
