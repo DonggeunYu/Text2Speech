@@ -40,7 +40,7 @@ class Tacotron(nn.Module):
         self.postnet = CBHG(mel_dim, K=8, projections=[256, mel_dim])
         self.last_linear = nn.Linear(mel_dim * 2, linear_dim)
 
-    def forward(self, inputs, input_lengths, num_speakers, speaker_id=None,mel_targets=None, linear_targets=None, is_training= False,loss_coeff=None,stop_token_targets=None):
+    def forward(self, inputs, input_lengths, loss_coeff=None, mel_targets=None, linear_targets=None, stop_token_targets=None, speaker_id=None, num_speakers=None):
         self.num_speakers = num_speakers
         if self.num_speakers > 1:
             speaker_embed_table = self.variable

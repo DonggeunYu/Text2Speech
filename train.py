@@ -6,6 +6,7 @@ import torch
 from torch import optim
 from torch import nn as nn
 from torch.utils.data import DataLoader
+from torch.autograd import Variable
 from hparams import hparams
 from tacotron.tacotron import Tacotron
 from text.symbols import symbols
@@ -28,7 +29,7 @@ log = infolog.log
 
 global_step = 0
 global_epoch = 0
-speaker_id = True
+multi_speaker = True
 use_cuda = torch.cuda.is_available()
 
 
@@ -102,6 +103,86 @@ def _pad_2d(x, max_len):
                mode="constant", constant_values=0)
     return x
 
+def _prepare_inputs(inputs):  # inputs: batch 길이 만큼의 list
+    max_len = max((len(x) for x in inputs))
+    return np.stack([_pad(x, max_len) for x in inputs])
+
+def _prepare_targets(targets, alignment):
+    # targets: shape of list [ (162,80) , (172, 80), ...]
+    max_len = max((len(t) for t in targets)) + 1
+    return np.stack([_pad_target(t, _round_up(max_len, alignment)) for t in targets])
+
+def _prepare_stop_token_targets(targets, alignment):
+    max_len = max((len(t) for t in targets)) + 1
+    return np.stack([_pad_stop_token_target(t, _round_up(max_len, alignment)) for t in targets])
+
+
+def _pad_input(x, length):
+    return np.pad(x, (0, length - x.shape[0]), mode='constant', constant_values=0)
+
+
+def _pad_target(t, length):
+    # t: 2 dim array. ( xx, num_mels) ==> (length,num_mels)
+    return np.pad(t, [(0, length - t.shape[0]), (0,0)], mode='constant', constant_values=0)  # (169, 80) ==> (length, 80)
+
+###
+def _pad_stop_token_target(t, length):
+    return np.pad(t, (0, length - t.shape[0]), mode='constant', constant_values=1)
+
+def _round_up(x, multiple):
+    remainder = x % multiple
+    return x if remainder == 0 else x + multiple - remainder
+
+
+def _learning_rate_decay(init_lr, global_step):
+    warmup_steps = 4000.0
+    step = global_step + 1.
+    lr = init_lr * warmup_steps**0.5 * np.minimum(
+        step * warmup_steps**-1.5, step**-0.5)
+    return lr
+
+def save_checkpoint(model, optimizer, step, checkpoint_dir, epoch):
+    checkpoint_path = join(
+        checkpoint_dir, "checkpoint_step{}.pth".format(global_step))
+    torch.save({
+        "state_dict": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "global_step": step,
+        "global_epoch": epoch,
+    }, checkpoint_path)
+    print("Saved checkpoint:", checkpoint_path)
+
+def collate_fn(batch):
+    """Create batch"""
+    reduction_factor = 5
+    # batch data: (input_data, loss_coeff, mel_target, linear_target, self.data_dir_to_id[data_dir], len(linear_target))
+    inputs = _prepare_inputs([x[0] for x in batch])  # batch에 있는 data들 중, 가장 긴 data의 길이에 맞게 padding한다.
+    inputs = torch.LongTensor(inputs)
+
+    input_lengths = np.asarray([len(x[0]) for x in batch])  # batch_size, [37, 37, 32, 32, 38,..., 39, 36, 30]
+    input_lengths = torch.LongTensor(input_lengths)
+
+    loss_coeff = np.asarray([x[1] for x in batch], dtype=np.float32)  # batch_size, [1,1,1,,..., 1,1,1]
+    loss_coeff = torch.LongTensor(loss_coeff)
+
+    mel_targets = _prepare_targets([x[2] for x in batch],
+                                   reduction_factor)  # ---> (32, 175, 80) max length는 reduction_factor의  배수가 되도록
+    mel_targets = torch.LongTensor(mel_targets)
+
+    linear_targets = _prepare_targets([x[3] for x in batch],
+                                      reduction_factor)  # ---> (32, 175, 1025)  max length는 reduction_factor의  배수가 되도록
+    linear_targets = torch.LongTensor(linear_targets)
+
+    stop_token_targets = _prepare_stop_token_targets([x[4] for x in batch], reduction_factor)
+    stop_token_targets = torch.LongTensor(stop_token_targets)
+
+    if len(batch[0]) == 7:  # is_multi_speaker = True인 경우
+        speaker_id = np.asarray([x[5] for x in batch], dtype=np.int32)  # speaker_id로 list 만들기
+        return (inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_targets, speaker_id)
+    else:
+        return (inputs, input_lengths, loss_coeff, mel_targets,
+                linear_targets, stop_token_targets)
+
 def train_init(log_dir, config):
     config.data_path = config.data_paths
 
@@ -124,12 +205,8 @@ def train_init(log_dir, config):
                                       batch_size=config.batch_size)
     test_feeder = DataFeederTacotron(data_dirs, hparams, config, 8, data_type='test', batch_size=config.num_test)
 
-
     train_loader = DataLoader(dataset=train_feeder, batch_size=32, shuffle=False,
-                              num_workers=os.cpu_count(), pin_memory=True)
-    for step, (input_data, input_data_len, loss_coeff, mel_target, linear_target, stop_token_target, s_id
-               , linear_target_len) in enumerate(train_loader):
-        pass
+                              collate_fn=collate_fn, num_workers=os.cpu_count(), pin_memory=True)
     num_speakers = len(config.data_paths)
     model = Tacotron(hparams, len(symbols), num_speakers=num_speakers)
 
@@ -168,24 +245,6 @@ def train_init(log_dir, config):
     print("Finished")
     sys.exit(0)
 
-def _learning_rate_decay(init_lr, global_step):
-    warmup_steps = 4000.0
-    step = global_step + 1.
-    lr = init_lr * warmup_steps**0.5 * np.minimum(
-        step * warmup_steps**-1.5, step**-0.5)
-    return lr
-
-def save_checkpoint(model, optimizer, step, checkpoint_dir, epoch):
-    checkpoint_path = join(
-        checkpoint_dir, "checkpoint_step{}.pth".format(global_step))
-    torch.save({
-        "state_dict": model.state_dict(),
-        "optimizer": optimizer.state_dict(),
-        "global_step": step,
-        "global_epoch": epoch,
-    }, checkpoint_path)
-    print("Saved checkpoint:", checkpoint_path)
-
 def train(model, data_loader, optimizer,
           init_lr=0.002,
           checkpoint_dir=None, checkpoint_interval=None, nepochs=None,
@@ -199,18 +258,31 @@ def train(model, data_loader, optimizer,
 
     global global_step, global_epoch
 
-    if speaker_id: # Multi-Speaker
+    if multi_speaker: # Multi-Speaker
         while global_epoch < nepochs:
             running_loss = 0.
-            for step, (input_data, input_data_len, loss_coeff, mel_target, linear_target, stop_token_target, s_id
-                       , linear_target_len) in tqdm(enumerate(data_loader)):
+            for step, (inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)\
+                    in tqdm(enumerate(data_loader)):
                 current_lr = _learning_rate_decay(init_lr, global_step)
-                for params_group in optimizer.param_groups:
-                    params_group['lr'] = current_lr
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = current_lr
 
-                optimizer.zero_grad()
+                    optimizer.zero_grad()
 
-                sorted_lengths, indices = torch.sort(input_data_len)
+                    # Sort batch data by input_lengths
+                    sorted_lengths, indices = torch.sort(
+                        input_lengths.view(-1), dim=0, descending=True)
+                    sorted_lengths = sorted_lengths.long().numpy()
+
+                    inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
+                        inputs[indices], input_lengths[indices], loss_coeff[indices], mel_targets[indices],\
+                        linear_targets[indices], stop_token_target[indices], speaker_id[indices]
+
+                    inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
+                        Variable(inputs), Variable(input_lengths), Variable(loss_coeff), Variable(mel_targets), \
+                        Variable(linear_targets), Variable(stop_token_target), Variable(speaker_id)
+
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -232,8 +304,8 @@ def main():
     config = parser.parse_args()
     config.data_paths = config.data_paths.split(',')
     hparams.update({"num_speakers": len(config.data_paths)})
-    global speaker_id
-    speaker_id = True if len(config.data_paths) > 1 else False
+    global multi_speaker
+    multi_speaker = True if len(config.data_paths) > 1 else False
     prepare_dirs(config, hparams)
 
     log_path = os.path.join(config.model_dir, 'train.log')

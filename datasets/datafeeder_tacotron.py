@@ -7,12 +7,12 @@ from glob import glob
 import pprint
 import os
 import time
+import torch
 import numpy as np
 
 from torch.utils import data as data_utils
 
 _pad = 0
-_stop_token_pad = 1
 
 
 def get_frame(path):
@@ -146,28 +146,25 @@ class DataFeederTacotron():
 
         self.len = np.shape(examples)[0]
         examples_len = len(examples)
-
         self.input_data = [examples[i][0] for i in range(examples_len)]
-        self.input_data_len = [examples[i][1] for i in range(examples_len)]
-        self.loss_coeff = [examples[i][2] for i in range(examples_len)]
-        self.mel_target = [examples[i][3] for i in range(examples_len)]
-        self.linear_target = [examples[i][4] for i in range(examples_len)]
-        self.stop_token_target = [examples[i][5] for i in range(examples_len)]
+        self.loss_coeff = [examples[i][1] for i in range(examples_len)]
+        self.mel_target = [examples[i][2] for i in range(examples_len)]
+        self.linear_target = [examples[i][3] for i in range(examples_len)]
+        self.stop_token_target = [examples[i][4] for i in range(examples_len)]
         if self.is_multi_speaker:
-            self.id = [examples[i][6] for i in range(examples_len)]
-            self.linear_target_len = [examples[i][7] for i in range(examples_len)]
-        else:
+            self.id = [examples[i][5] for i in range(examples_len)]
             self.linear_target_len = [examples[i][6] for i in range(examples_len)]
-
+        else:
+            self.linear_target_len = [examples[i][5] for i in range(examples_len)]
         log('Generated %d batches of size %d in %.03f sec' % (len(examples) // 32, n, time.time() - start))
 
     def __getitem__(self, item):
         if self.is_multi_speaker:
-            return self.input_data[item], self.input_data_len[item], self.loss_coeff[item], self.mel_target[item], self.linear_target[item], \
-                   self.stop_token_target[item], self.id[item], self.linear_target_len[item]
+            return (self.input_data[item], self.loss_coeff[item], self.mel_target[item], self.linear_target[item], \
+                   self.stop_token_target[item], self.id[item], self.linear_target_len[item])
         else:
-            return self.input_data[item], self.input_data_len[item], self.loss_coeff[item], self.mel_target[item], self.linear_target[item], \
-                   self.stop_token_target[item], self.linear_target_len[item]
+            return (self.input_data[item], self.loss_coeff[item], self.mel_target[item], self.linear_target[item], \
+                   self.stop_token_target[item], self.linear_target_len[item])
 
     def __len__(self):
         return self.len
@@ -175,12 +172,14 @@ class DataFeederTacotron():
     def _get_next_example(self, data_dir):
         '''npz 1개를 읽어 처리한다. Loads a single example (input, mel_target, linear_target, cost) from disk'''
         data_paths = self.path_dict[data_dir]
+
         while True:
             if self._offset[data_dir] >= len(data_paths):
                 self._offset[data_dir] = 0
 
                 if self.data_type == 'train':
                     self.rng.shuffle(data_paths)
+
             data_path = data_paths[self._offset[data_dir]]  # npz파일 1개 선택
             self._offset[data_dir] += 1
 
@@ -193,12 +192,12 @@ class DataFeederTacotron():
                 remove_file(data_path)
                 continue
 
+
             if self.min_n_frame <= data["linear"].shape[0] <= self.max_n_frame and len(
                     data["tokens"]) > self.min_tokens:
                 break
 
         input_data = data['tokens']  # 1-dim
-        input_data_len = len(input_data)
         mel_target = data['mel']
 
         if 'loss_coeff' in data:
@@ -211,7 +210,7 @@ class DataFeederTacotron():
 
         # multi-speaker가 아니면, speaker_id는 넘길 필요 없지만, 현재 구현이 좀 꼬여 있다. 그래서 무조건 넘긴다.
         if self.is_multi_speaker:
-            return [input_data, input_data_len, loss_coeff, mel_target, linear_target, stop_token_target, self.data_dir_to_id[data_dir],
-                    len(linear_target)]
+            return (input_data, loss_coeff, mel_target, linear_target, stop_token_target, self.data_dir_to_id[data_dir],
+                    len(linear_target))
         else:
-            return [input_data, input_data_len, loss_coeff, mel_target, linear_target, stop_token_target, len(linear_target)]
+            return (input_data, loss_coeff, mel_target, linear_target, stop_token_target, len(linear_target))

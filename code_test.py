@@ -1,4 +1,4 @@
-from tqdm import tqdm
-a = 0
-for i, x in tqdm(enumerate(range(100))):
-    a = i + a
+import torch
+a = torch.randn((3))
+a = a.view(-1)
+print(a)
