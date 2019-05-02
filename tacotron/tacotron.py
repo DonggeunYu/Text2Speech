@@ -1,4 +1,3 @@
-import tacotron.attention_wrapper as attention_wrapper
 import torch.nn as nn
 import torch
 import numpy as np
@@ -8,51 +7,49 @@ from utils.infolog import log
 from .modules import *
 from .attention import get_mask_from_lengths, BahdanauAttention, AttentionWrapper
 from torch.autograd import Variable
+from hparams import hparams
+
 
 class Tacotron(nn.Module):
     def __init__(self, hparams, n_vocab, mel_dim=80, linear_dim=1025,
                  r=5, padding_idx=None, use_memory_mask=False, num_speakers=1):
         super(Tacotron, self).__init__()
-
-        self._hparams = hparams
-        hp = self._hparams
-        embedding_dim = hp['embedding_size']
-
-        self.variable = Variable(torch.zeros(num_speakers, hp['speaker_embedding_size'], dtype=torch.float32))
-        self.variable[:] = 0.5
-        self.encoder_lstm_units = hp['encoder_lstm_units']
-        self.decoder_lstm_units = hp['decoder_lstm_units']
-        self.decoder_layers = hp['dec_layer_num']
-
         self.mel_dim = mel_dim
         self.linear_dim = linear_dim
         self.use_memory_mask = use_memory_mask
-        self.embedding = nn.Embedding(n_vocab, embedding_dim,
-                                      padding_idx=padding_idx)
-        # Trying smaller std
-        self.embedding.weight.data.normal_(0, 0.3)
+        embedding_dim = hparams['embedding_size']
+        self.char_embed_table = nn.Embedding(n_vocab, embedding_dim)
+        std = np.sqrt(2.0 / (n_vocab + embedding_dim))
+        val = np.sqrt(3.0) * std  # uniform bounds for std
+        self.char_embed_table.weight.data.uniform_(-val, val)
 
-        # Embeddings(256)
-        self.char_embed_table = nn.Embedding(len(symbols), hp['embedding_size'])
+        if num_speakers > 1:
+            self.speaker_embed_table = nn.Embedding(num_speakers, hparams['speaker_embedding_size'])
+            self.deep_dense = lambda x, dim: nn.Sequential(nn.Linear(x, dim), nn.Softsign())  # softsign: x / (abs(x) + 1)
 
-        self.encoder = Encoder(hp)
+        self.encoder = Encoder(embedding_dim)
         self.decoder = Decoder(mel_dim, r)
+
         self.postnet = CBHG(mel_dim, K=8, projections=[256, mel_dim])
         self.last_linear = nn.Linear(mel_dim * 2, linear_dim)
 
-    def forward(self, inputs, input_lengths, loss_coeff=None, mel_targets=None, linear_targets=None, stop_token_targets=None, speaker_id=None, num_speakers=None):
+    def forward(self, num_speakers, inputs, input_lengths, loss_coeff=None, mel_targets=None, linear_targets=None, stop_token_targets=None, speaker_id=None):
         self.num_speakers = num_speakers
-        if self.num_speakers > 1:
-            speaker_embed_table = self.variable
-            # [N, T_in, speaker_embedding_size]
-            speaker_embed = nn.Embedding(speaker_embed_table, speaker_id)
 
-            deep_dense = lambda x, dim, name: nn.dense(x, dim, activation=nn.softsign)  # softsign: x / (abs(x) + 1)
+        B = inputs.size(0)
 
-            encoder_rnn_init_state = deep_dense(speaker_embed, self.encoder_lstm_units * 4)  # hp.encoder_lstm_units = 256
+        char_embedded_inputs = self.char_embed_table(inputs).view((1, -1))
+
+        if num_speakers > 1:
+            speaker_embed = self.speaker_embed_table(speaker_id).view((1, -1))
+
+            encoder_rnn_init_state = self.deep_dense(np.shape(speaker_embed)[1],
+                                                hparams['encoder_lstm_units'] * 4)  # hp.encoder_lstm_units = 256
+
 
             decoder_rnn_init_states = [
-                deep_dense(speaker_embed, self.decoder_lstm_units * 2) for i in range(self.decoder_layers)]  # hp.decoder_lstm_units = 1024
+                self.deep_dense(np.shape(speaker_embed)[1], self.decoder_lstm_units * 2) for i in
+                range(hparams['dec_layer_num'])]  # hp.decoder_lstm_units = 1024
 
             speaker_embed = None
         else:
@@ -62,11 +59,9 @@ class Tacotron(nn.Module):
             attention_rnn_init_state = None
             decoder_rnn_init_states = None
 
-        B = inputs.size(0)
-
-        inputs = self.embedding(inputs)
         # (B, T', in_dim)
-        encoder_outputs = self.encoder(inputs, input_lengths)
+        encoder_outputs = self.encoder(inputs, input_lengths,
+                                       encoder_rnn_init_state, attention_rnn_init_state, decoder_rnn_init_states)
 
         if self.use_memory_mask:
             memory_lengths = input_lengths
@@ -90,12 +85,26 @@ class Tacotron(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, hp):
         super(Encoder, self).__init__()
+        hp = hparams
+        self.conv1d = nn.Conv1d(in_channels=hp['enc_conv_channels'], out_channels=hp['enc_conv_channels'], kernel_size=hp['enc_conv_kernel_size'], padding='same')
+        self.conv1d = nn.ReLU(self.conv1d)
         self.prenet = Prenet(hp['embedding_size'], hp['enc_prenet_sizes'])
         self.cbhg = CBHG(128, K=16, projections=[128, 128])
 
-    def forward(self, inputs, input_lengths=None):
-        inputs = self.Prenet(inputs)
-        return self.cbhg(inputs, input_lengths)
+    def forward(self, x, input_lengths=None, encoder_rnn_init_state=None, attention_rnn_init_state=None, decoder_rnn_init_states=None):
+
+        for i in range(hparams['enc_conv_num_layers']):
+            x = self.conv1d(x)
+            x = nn.BatchNorm2d(x)
+            x = nn.Dropout(x)
+
+        if encoder_rnn_init_state is not None:
+            initial_state_fw_c, initial_state_fw_h, initial_state_bw_c, initial_state_bw_h = tf.split(
+                encoder_rnn_init_state, 4, 1)
+            initial_sate_fw = BiLSTMModel(initial_state_bw_c,initial_state_bw_h)
+            initial_state_bw = BiLSTMModel(initial_state_bw_c,initial_state_bw_h)
+
+
 
 class Decoder(nn.Module):
     def __init__(self, in_dim, r):

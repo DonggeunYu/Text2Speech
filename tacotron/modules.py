@@ -141,3 +141,73 @@ def batch_tile(tensor, batch_size):
     return tf.tile(expaneded_tensor, \
             [batch_size] + [1 for _ in tensor.get_shape()])
 
+class ConvNorm(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1,
+                 padding=None, dilation=1, bias=True, w_init_gain='linear'):
+        super(ConvNorm, self).__init__()
+        if padding is None:
+            assert(kernel_size % 2 == 1)
+            padding = int(dilation * (kernel_size - 1) / 2)
+
+        self.conv = torch.nn.Conv1d(in_channels, out_channels,
+                                    kernel_size=kernel_size, stride=stride,
+                                    padding=padding, dilation=dilation,
+                                    bias=bias)
+
+        torch.nn.init.xavier_uniform_(
+            self.conv.weight, gain=torch.nn.init.calculate_gain(w_init_gain))
+
+    def forward(self, signal):
+        conv_signal = self.conv(signal)
+        return conv_signal
+
+
+class BiLSTMModel(nn.Module):
+    def __init__(self, args):
+        super(BiLSTMModel, self).__init__()
+        self.embed = nn.Embedding(args.vocab_size, args.embedding_size)
+        self.flstm = nn.LSTM(args.embedding_size, args.hidden_size, batch_first=True)
+        self.blstm = nn.LSTM(args.embedding_size, args.hidden_size, batch_first=True)
+        self.linear = nn.Linear(args.hidden_size * 2, args.label_size)
+        self.embed.weight.data.uniform_(-1, 1)
+
+        self.use_cuda = args.use_cuda
+
+    def forward(self, x, mask, is_eval=False):
+        '''
+            run the model, take input sentence and predict the logits
+            args:
+                x: encoded sentence
+                mask: the mask of the sentence
+            returns:
+
+        '''
+        x_embd = self.embed(x)
+        # forward lstm
+        fout, (hn, cn) = self.flstm(x_embd)
+
+        # calculate backward index
+        rev_index = torch.range(x.size(1) - 1, 0, -1).view(1, -1).expand(x.size(0), x.size(1)).long()
+        if self.use_cuda:
+            rev_index = rev_index.cuda()
+        # code.interact(local=locals())
+        mask_length = torch.sum(1 - mask.data, 1).unsqueeze(1).long().expand_as(rev_index)
+        rev_index -= mask_length
+        rev_index[rev_index < 0] = 0
+        rev_index = Variable(rev_index, volatile=is_eval)
+
+        # reverse the order of x and store it in bx
+        bx = Variable(x.data.new(x.size()).fill_(0), volatile=is_eval)
+        bx = torch.gather(x, 1, rev_index)
+        bx_embd = self.embed(bx)
+        # backward lstm
+        bout, (hn, cn) = self.blstm(bx_embd)
+
+        # concat forward hidden states with backward hidden states
+        out = torch.cat([fout, bout], 2)
+        length = mask.sum(1).unsqueeze(1).unsqueeze(2).expand(out.size(0), 1, out.size(2)).long() - 1
+
+        # gather the last hidden states
+        out = torch.gather(out, 1, length).contiguous().squeeze(1)
+        out = self.linear(out)
+        return out

@@ -27,9 +27,10 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 log = infolog.log
 
+fs = hparams['sample_rate']
 global_step = 0
 global_epoch = 0
-multi_speaker = True
+multi_speaker = 0
 use_cuda = torch.cuda.is_available()
 
 
@@ -141,6 +142,39 @@ def _learning_rate_decay(init_lr, global_step):
         step * warmup_steps**-1.5, step**-0.5)
     return lr
 
+def save_states(global_step, mel_outputs, linear_outputs, attn, y,
+                input_lengths, checkpoint_dir=None):
+    print("Save intermediate states at step {}".format(global_step))
+
+    # idx = np.random.randint(0, len(input_lengths))
+    idx = min(1, len(input_lengths) - 1)
+    input_length = input_lengths[idx]
+
+    # Alignment
+    path = join(checkpoint_dir, "step{}_alignment.png".format(
+        global_step))
+    # alignment = attn[idx].cpu().data.numpy()[:, :input_length]
+    alignment = attn[idx].cpu().data.numpy()
+    save_alignment(path, alignment)
+
+    # Predicted spectrogram
+    path = join(checkpoint_dir, "step{}_predicted_spectrogram.png".format(
+        global_step))
+    linear_output = linear_outputs[idx].cpu().data.numpy()
+    save_spectrogram(path, linear_output)
+
+    # Predicted audio signal
+    signal = audio.inv_spectrogram(linear_output.T)
+    path = join(checkpoint_dir, "step{}_predicted.wav".format(
+        global_step))
+    audio.save_wav(signal, path)
+
+    # Target spectrogram
+    path = join(checkpoint_dir, "step{}_target_spectrogram.png".format(
+        global_step))
+    linear_output = y[idx].cpu().data.numpy()
+    save_spectrogram(path, linear_output)
+
 def save_checkpoint(model, optimizer, step, checkpoint_dir, epoch):
     checkpoint_path = join(
         checkpoint_dir, "checkpoint_step{}.pth".format(global_step))
@@ -178,6 +212,7 @@ def collate_fn(batch):
 
     if len(batch[0]) == 7:  # is_multi_speaker = True인 경우
         speaker_id = np.asarray([x[5] for x in batch], dtype=np.int32)  # speaker_id로 list 만들기
+        speaker_id = torch.LongTensor(speaker_id)
         return (inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_targets, speaker_id)
     else:
         return (inputs, input_lengths, loss_coeff, mel_targets,
@@ -258,7 +293,8 @@ def train(model, data_loader, optimizer,
 
     global global_step, global_epoch
 
-    if multi_speaker: # Multi-Speaker
+    if multi_speaker > 1: # Multi-Speaker
+        print('a')
         while global_epoch < nepochs:
             running_loss = 0.
             for step, (inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)\
@@ -274,15 +310,51 @@ def train(model, data_loader, optimizer,
                         input_lengths.view(-1), dim=0, descending=True)
                     sorted_lengths = sorted_lengths.long().numpy()
 
-                    inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
-                        inputs[indices], input_lengths[indices], loss_coeff[indices], mel_targets[indices],\
+                    inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
+                        inputs[indices], loss_coeff[indices], mel_targets[indices],\
                         linear_targets[indices], stop_token_target[indices], speaker_id[indices]
 
-                    inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
-                        Variable(inputs), Variable(input_lengths), Variable(loss_coeff), Variable(mel_targets), \
+                    inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
+                        Variable(inputs), Variable(loss_coeff), Variable(mel_targets), \
                         Variable(linear_targets), Variable(stop_token_target), Variable(speaker_id)
 
+                    if use_cuda:
+                        inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
+                            inputs.cuda(), loss_coeff.cuda(), mel_targets.cuda(), \
+                            linear_targets.cuda(), stop_token_target.cuda(), speaker_id.cuda()
+                    mel_outputs, linear_outputs, attn = model(multi_speaker, inputs, sorted_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)
 
+                    # Loss
+                    mel_loss = criterion(mel_outputs, mel_targets)
+                    n_priority_freq = int(3000 / (fs * 0.5) * linear_dim)
+                    linear_loss = 0.5 * criterion(linear_outputs, y) + 0.5 * criterion(linear_outputs[:, :, :n_priority_freq],
+                                                                                       y[:, :, :n_priority_freq])
+                    loss = mel_loss + linear_loss
+
+                    if global_step > 0 and global_step % checkpoint_interval == 0:
+                        save_states(global_step, mel_outputs, linear_outputs, attn, linear_targets, sorted_lengths, checkpoint_dir)
+                        save_checkpoint(model, optimizer, global_step, checkpoint_dir, global_epoch)
+
+                    # Update
+                    loss.backward()
+                    grad_norm = torch.nn.utils.clip_grad_norm(model.parameters(), clip_thresh)
+                    optimizer.step()
+
+                    # Logs
+                    log_value("loss", float(loss.data[0]), global_step)
+                    log_value("mel loss", float(mel_loss.data[0]), global_step)
+                    log_value("linear loss", float(linear_loss.data[0]), global_step)
+                    log_value("gradient norm", grad_norm, global_step)
+                    log_value("learning rate", current_lr, global_step)
+
+                    global_step += 1
+                    running_loss += loss.data[0]
+
+                averaged_loss = running_loss / (len(data_loader))
+                log_value("loss (per epoch)", averaged_loss, global_epoch)
+                print("Loss: {}".format(running_loss / (len(data_loader))))
+
+                global_epoch += 1
 
 def main():
     parser = argparse.ArgumentParser()
@@ -305,7 +377,7 @@ def main():
     config.data_paths = config.data_paths.split(',')
     hparams.update({"num_speakers": len(config.data_paths)})
     global multi_speaker
-    multi_speaker = True if len(config.data_paths) > 1 else False
+    multi_speaker = len(config.data_paths)
     prepare_dirs(config, hparams)
 
     log_path = os.path.join(config.model_dir, 'train.log')

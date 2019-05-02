@@ -101,6 +101,11 @@ hparams = {
   "enc_proj_width": 3,
   "encoder_lstm_units" : 256,
 
+    "enc_conv_num_layers" : 3,
+    "enc_conv_kernel_size" : 5,
+    "enc_conv_channels" : 512,
+    "tacotron_zoneout_rate" : 0.1,
+
   "attention_type": "bah_mon_norm",
   "attention_size": 256,
   "attention_state_size": 256,

@@ -1,4 +1,6 @@
 import torch
-a = torch.randn((3))
-a = a.view(-1)
-print(a)
+from torch.autograd import Variable
+import numpy as np
+a = np.array((2))
+a = torch.LongTensor(a)
+b = Variable(a)
