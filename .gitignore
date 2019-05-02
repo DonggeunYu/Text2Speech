@@ -3,4 +3,3 @@ training_data/
 data/
 logdir-tacotron/
 **/__pycache__/
-tensorboard_log/

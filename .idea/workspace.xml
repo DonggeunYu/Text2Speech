@@ -6,85 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="a1f0317d-52d3-4fe4-83fe-2b26b002e289" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-01-08/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-01-08/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-01-36/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-01-36/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-27-49/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-27-49/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-28-16/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-28-16/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-31-14/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-31-14/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-37-41/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-37-41/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-38-08/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-38-08/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-38-40/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-38-40/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-39-17/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-39-17/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-40-45/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-40-45/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-40-46/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-40-46/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-41-02/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-41-02/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-42-16/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-42-16/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-43-20/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-43-20/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-44-27/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-44-27/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-44-50/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-44-50/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-45-01/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-45-01/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-45-53/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-45-53/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-46-03/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-46-03/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-46-22/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-46-22/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-46-33/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-46-33/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-46-52/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-46-52/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-47-35/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-47-35/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-51-42/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-51-42/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-56-54/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-56-54/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-57-47/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-57-47/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-59-09/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-29_H-59-09/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-30_H-11-53/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-30_H-11-53/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-30_H-15-59/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-30_H-15-59/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-30_H-19-13/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-30_H-19-13/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-30_H-19-40/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1+kss2_2019-04-30_H-19-40/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1_2019-04-29_H-50-38/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss1_2019-04-29_H-50-38/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-06-40/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-06-40/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-07-40/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-07-40/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-08-16/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-08-16/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-17-08/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-17-08/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-28-20/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-28-20/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-34-10/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-34-10/params.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-50-47/hparams.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/logdir-t2s/kss_2019-04-29_H-50-47/params.json" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -151,8 +72,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/.gitignore">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="45">
-              <caret line="3" column="16" selection-start-line="3" selection-start-column="16" selection-end-line="3" selection-end-column="16" />
+            <state relative-caret-position="75">
+              <caret line="5" selection-start-line="5" selection-end-line="5" />
             </state>
           </provider>
         </entry>
@@ -501,12 +422,12 @@
       <workItem from="1555918996724" duration="4745000" />
       <workItem from="1556025210054" duration="24609000" />
       <workItem from="1556497531935" duration="34493000" />
-      <workItem from="1556771956102" duration="14323000" />
+      <workItem from="1556771956102" duration="14369000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="281316000" />
+    <option name="totallyTimeSpent" value="281362000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="840" y="0" width="840" height="1050" extended-state="0" />
@@ -897,8 +818,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="45">
-          <caret line="3" column="16" selection-start-line="3" selection-start-column="16" selection-end-line="3" selection-end-column="16" />
+        <state relative-caret-position="75">
+          <caret line="5" selection-start-line="5" selection-end-line="5" />
         </state>
       </provider>
     </entry>
