@@ -88,7 +88,7 @@ hparams = {
   "model_type": "deepvoice",
   "speaker_embedding_size": 16,
 
-  "embedding_size": 256,
+  "embedding_size": 512,
   "dropout_prob": 0.5,
 
   "enc_prenet_sizes": [256, 128],

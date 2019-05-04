@@ -294,7 +294,6 @@ def train(model, data_loader, optimizer,
     global global_step, global_epoch
 
     if multi_speaker > 1: # Multi-Speaker
-        print('a')
         while global_epoch < nepochs:
             running_loss = 0.
             for step, (inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)\

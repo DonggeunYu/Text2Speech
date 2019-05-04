@@ -1,8 +1,10 @@
 # coding: utf-8
 # Code based on https://github.com/keithito/tacotron/blob/master/models/tacotron.py
 
+import numpy as np
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 import tensorflow as tf
 from tensorflow.keras.layers import GRUCell
 from tensorflow.python.ops import init_ops
@@ -14,24 +16,17 @@ def get_embed(inputs, num_inputs, embed_size, name):  # speaker_id, self.num_spe
     return tf.nn.embedding_lookup(embed_table, inputs)
 
 class Prenet(nn.Module):
-    '''
-        FC-256-ReLU -> Dropout(0.5) ->
-        FC-128-ReLU -> Dropout(0.5)
-    '''
     def __init__(self, in_dim, sizes):
         super(Prenet, self).__init__()
         in_sizes = [in_dim] + sizes[:-1]
-        # in_size: [256, 256]
         self.layers = nn.ModuleList(
-            [nn.Linear(in_size, out_size)
+            [LinearNorm(in_size, out_size, bias=False)
              for (in_size, out_size) in zip(in_sizes, sizes)])
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.5)
-    def forward(self, inputs):
-        for linear in self.layers:
-            inputs = self.dropout(self.relu(linear(inputs)))
 
-        return inputs
+    def forward(self, x):
+        for linear in self.layers:
+            x = F.dropout(F.relu(linear(x)), p=0.5, training=True)
+        return x
 
 
 class CBHG(nn.Module):
@@ -163,12 +158,12 @@ class ConvNorm(torch.nn.Module):
 
 
 class BiLSTMModel(nn.Module):
-    def __init__(self, args):
+    def __init__(self, vocab_size, embedding_size, hidden_size):
         super(BiLSTMModel, self).__init__()
-        self.embed = nn.Embedding(args.vocab_size, args.embedding_size)
-        self.flstm = nn.LSTM(args.embedding_size, args.hidden_size, batch_first=True)
-        self.blstm = nn.LSTM(args.embedding_size, args.hidden_size, batch_first=True)
-        self.linear = nn.Linear(args.hidden_size * 2, args.label_size)
+        self.embed = nn.Embedding(vocab_size, embedding_size)
+        self.flstm = nn.LSTM(embedding_size, hidden_size, batch_first=True)
+        self.blstm = nn.LSTM(embedding_size, hidden_size, batch_first=True)
+        self.linear = nn.Linear(hidden_size * 2, 2)
         self.embed.weight.data.uniform_(-1, 1)
 
         self.use_cuda = args.use_cuda
@@ -211,3 +206,41 @@ class BiLSTMModel(nn.Module):
         out = torch.gather(out, 1, length).contiguous().squeeze(1)
         out = self.linear(out)
         return out
+
+class LinearNorm(torch.nn.Module):
+    def __init__(self, in_dim, out_dim, bias=True, w_init_gain='linear'):
+        super(LinearNorm, self).__init__()
+        self.linear_layer = torch.nn.Linear(in_dim, out_dim, bias=bias)
+
+        torch.nn.init.xavier_uniform_(
+            self.linear_layer.weight,
+            gain=torch.nn.init.calculate_gain(w_init_gain))
+
+    def forward(self, x):
+        return self.linear_layer(x)
+
+class ConvNorm(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1,
+                 padding='same', dilation=1, bias=True, w_init_gain='linear'):
+        super(ConvNorm, self).__init__()
+        if padding is None:
+            assert(kernel_size % 2 == 1)
+            padding = int(dilation * (kernel_size - 1) / 2)
+
+        self.conv = torch.nn.Conv1d(in_channels, out_channels,
+                                    kernel_size=kernel_size, stride=stride,
+                                    padding=padding, dilation=dilation,
+                                    bias=bias)
+
+        torch.nn.init.xavier_uniform_(
+            self.conv.weight, gain=torch.nn.init.calculate_gain(w_init_gain))
+
+    def forward(self, signal):
+        conv_signal = self.conv(signal)
+        return conv_signal
+
+def get_mask_from_lengths(lengths):
+    max_len = torch.max(lengths).item()
+    ids = torch.arange(0, max_len, out=torch.cuda.LongTensor(max_len))
+    mask = (ids < lengths.unsqueeze(1)).byte()
+    return mask
