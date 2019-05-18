@@ -30,7 +30,6 @@ def build_from_path(hparams, in_dir, out_dir, num_workers=1, tqdm=lambda x: x):
         lines = f.readlines()
         for i in lines:
             sp = i.split('|')
-            print(sp[1], sp[2])
             if len(sp[1].split()) == len(sp[2].split()): #문장이 같을 경우
                 wav_path = sp[0]
                 text = sp[1]
