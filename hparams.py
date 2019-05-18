@@ -106,9 +106,22 @@ hparams = {
     "enc_conv_channels" : 512,
     "tacotron_zoneout_rate" : 0.1,
 
+    "n_frames_per_step": 1,  # currently only 1 is supported
+    "decoder_rnn_dim": 1024,
+    "prenet_dim": 256,
+    "max_decoder_steps": 1000,
+    "gate_threshold": 0.5,
+    "p_attention_dropout": 0.1,
+    "p_decoder_dropout": 0.1,
+
   "attention_type": "bah_mon_norm",
   "attention_size": 256,
   "attention_state_size": 256,
+  "attention_rnn_dim": 1024,
+  "attention_dim": 128,
+
+  "attention_location_n_filters": 32,
+  "attention_location_kernel_size": 31,
 
   "dec_layer_num": 2,
   "dec_rnn_size": 256,
@@ -122,6 +135,10 @@ hparams = {
   "post_rnn_size": 128,
   "post_proj_sizes": [256, 80],
   "post_proj_width": 3,
+
+  "postnet_embedding_dim": 512,
+  "postnet_kernel_size": 5,
+  "postnet_n_convolutions": 5,
 
   "reduction_factor": 5,
 
@@ -138,7 +155,9 @@ hparams = {
 
   "num_freq": 1.,
   "frame_shift_ms": 1.,
-  "frame_length_ms": 1.
+  "frame_length_ms": 1.,
+
+  "mask_padding": True
 }
 
 hparams["num_freq"] = int(hparams['fft_size']/2 + 1)

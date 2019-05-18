@@ -98,6 +98,51 @@ class CBHG(nn.Module):
 
             return outputs
 
+class Postnet(nn.Module):
+    """Postnet
+        - Five 1-d convolution with 512 channels and kernel size 5
+    """
+
+    def     __init__(self, hparams):
+        super(Postnet, self).__init__()
+        self.convolutions = nn.ModuleList()
+
+        self.convolutions.append(
+            nn.Sequential(
+                ConvNorm(hparams['num_mels'], hparams['postnet_embedding_dim'],
+                         kernel_size=hparams['postnet_kernel_size'], stride=1,
+                         padding=int((hparams['postnet_kernel_size'] - 1) / 2),
+                         dilation=1, w_init_gain='tanh'),
+                nn.BatchNorm1d(hparams['postnet_embedding_dim']))
+        )
+
+        for i in range(1, hparams['postnet_n_convolutions'] - 1):
+            self.convolutions.append(
+                nn.Sequential(
+                    ConvNorm(hparams['postnet_embedding_dim'],
+                             hparams['postnet_embedding_dim'],
+                             kernel_size=hparams['postnet_kernel_size'], stride=1,
+                             padding=int((hparams['postnet_kernel_size'] - 1) / 2),
+                             dilation=1, w_init_gain='tanh'),
+                    nn.BatchNorm1d(hparams['postnet_embedding_dim']))
+            )
+
+        self.convolutions.append(
+            nn.Sequential(
+                ConvNorm(hparams['postnet_embedding_dim'], hparams['num_mels'],
+                         kernel_size=hparams['postnet_kernel_size'], stride=1,
+                         padding=int((hparams['postnet_kernel_size'] - 1) / 2),
+                         dilation=1, w_init_gain='linear'),
+                nn.BatchNorm1d(hparams['num_mels']))
+            )
+
+    def forward(self, x):
+        for i in range(len(self.convolutions) - 1):
+            x = F.dropout(torch.tanh(self.convolutions[i](x)), 0.5, self.training)
+        x = F.dropout(self.convolutions[-1](x), 0.5, self.training)
+
+        return x
+
 class BatchNormConv1d(nn.Module):
     def __init__(self, in_dim, out_dim, kernel_size, stride, padding,
                  activation=None):
@@ -240,7 +285,11 @@ class ConvNorm(torch.nn.Module):
         return conv_signal
 
 def get_mask_from_lengths(lengths):
+    lengths = torch.from_numpy(lengths)
     max_len = torch.max(lengths).item()
-    ids = torch.arange(0, max_len, out=torch.cuda.LongTensor(max_len))
+    if torch.cuda.is_available():
+        ids = torch.arange(0, max_len, out=torch.cuda.LongTensor(max_len))
+    else:
+        ids = torch.arange(0, max_len, out=torch.LongTensor(max_len))
     mask = (ids < lengths.unsqueeze(1)).byte()
     return mask

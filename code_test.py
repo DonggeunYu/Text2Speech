@@ -1,10 +1,12 @@
+from torch import nn
 import torch
-import torch.nn as nn
-from torch.nn import functional as F
-from torch.autograd import Variable
 import numpy as np
-input = Variable(torch.zeros(3, 4))
+import tensorflow as tf
 
-a = torch.randn(1, 10)
-c = F.softsign(Variable(a))
-print(c)
+x = torch.randn(3, 4, 2)
+x = x.view(-1, 2)
+print(np.shape(x))
+b_size = x.size(0)
+print(np.shape(b_size))
+x = nn.Linear(x)
+x = x.view(b_size, -1, 1)

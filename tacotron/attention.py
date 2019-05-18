@@ -30,16 +30,7 @@ class BahdanauAttention(nn.Module):
         return alignment.squeeze(-1)
 
 
-def get_mask_from_lengths(memory, memory_lengths):
-    """Get mask tensor from list of length
-    Args:
-        memory: (batch, max_time, dim)
-        memory_lengths: array like
-    """
-    mask = memory.data.new(memory.size(0), memory.size(1)).byte().zero_()
-    for idx, l in enumerate(memory_lengths):
-        mask[idx][:l] = 1
-    return ~mask
+
 
 
 class AttentionWrapper(nn.Module):

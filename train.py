@@ -3,10 +3,12 @@ import os
 import time
 import numpy as np
 import torch
+import math
 from torch import optim
 from torch import nn as nn
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
+import torch.distributed as dist
 from hparams import hparams
 from tacotron.tacotron import Tacotron
 from text.symbols import symbols
@@ -194,14 +196,14 @@ def collate_fn(batch):
     inputs = torch.LongTensor(inputs)
 
     input_lengths = np.asarray([len(x[0]) for x in batch])  # batch_size, [37, 37, 32, 32, 38,..., 39, 36, 30]
-    input_lengths = torch.LongTensor(input_lengths)
+    input_lengths = torch.from_numpy(input_lengths)
 
     loss_coeff = np.asarray([x[1] for x in batch], dtype=np.float32)  # batch_size, [1,1,1,,..., 1,1,1]
     loss_coeff = torch.LongTensor(loss_coeff)
 
     mel_targets = _prepare_targets([x[2] for x in batch],
                                    reduction_factor)  # ---> (32, 175, 80) max length는 reduction_factor의  배수가 되도록
-    mel_targets = torch.LongTensor(mel_targets)
+    mel_targets = torch.FloatTensor(mel_targets)
 
     linear_targets = _prepare_targets([x[3] for x in batch],
                                       reduction_factor)  # ---> (32, 175, 1025)  max length는 reduction_factor의  배수가 되도록
@@ -272,7 +274,8 @@ def train_init(log_dir, config):
               checkpoint_dir=config.log_dir,
               checkpoint_interval=config.checkpoint_interval,
               nepochs=hparams['num_steps'],
-              clip_thresh=1.0)
+              clip_thresh=1.0,
+              config=config)
     except KeyboardInterrupt:
         save_checkpoint(
             model, optimizer, global_step, config.log_dir, global_epoch)
@@ -280,10 +283,38 @@ def train_init(log_dir, config):
     print("Finished")
     sys.exit(0)
 
+def reduce_tensor(tensor, n_gpus):
+    rt = tensor.clone()
+    dist.all_reduce(rt, op=dist.reduce_op.SUM)
+    rt /= n_gpus
+    return rt
+
+def load_checkpoint(checkpoint_path, model, optimizer):
+    assert os.path.isfile(checkpoint_path)
+    print("Loading checkpoint '{}'".format(checkpoint_path))
+    checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
+    model.load_state_dict(checkpoint_dict['state_dict'])
+    optimizer.load_state_dict(checkpoint_dict['optimizer'])
+    learning_rate = checkpoint_dict['learning_rate']
+    iteration = checkpoint_dict['iteration']
+    print("Loaded checkpoint '{}' from iteration {}" .format(
+        checkpoint_path, iteration))
+    return model, optimizer, learning_rate, iteration
+
 def train(model, data_loader, optimizer,
           init_lr=0.002,
           checkpoint_dir=None, checkpoint_interval=None, nepochs=None,
-          clip_thresh=1.0):
+          clip_thresh=1.0, config=None):
+    iteration = 0
+    epoch_offset = 0
+    if config.checkpoint_path is not None:
+        model, optimizer, _learning_rate, iteration = load_checkpoint(
+                config.checkpoint_path, model, optimizer)
+        if hparams.use_saved_learning_rate:
+            learning_rate = _learning_rate
+        iteration += 1  # next iteration is iteration + 1
+        epoch_offset = max(0, int(iteration / len(data_loader)))
+
     model.train()
     if use_cuda:
         model = model.cuda()
@@ -291,14 +322,16 @@ def train(model, data_loader, optimizer,
 
     criterion = nn.L1Loss()
 
-    global global_step, global_epoch
+    n_priority_freq = int(3000 / (hparams['sample_rate'] * 0.5) * hparams['num_freq'])
 
     if multi_speaker > 1: # Multi-Speaker
-        while global_epoch < nepochs:
+        for epoch in range(epoch_offset, hparams['num_steps']):
+            print("Epoch: {}".format(epoch))
             running_loss = 0.
             for step, (inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)\
                     in tqdm(enumerate(data_loader)):
-                current_lr = _learning_rate_decay(init_lr, global_step)
+                start = time.perf_counter()
+                current_lr = _learning_rate_decay(init_lr, iteration)
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = current_lr
 
@@ -321,43 +354,38 @@ def train(model, data_loader, optimizer,
                         inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
                             inputs.cuda(), loss_coeff.cuda(), mel_targets.cuda(), \
                             linear_targets.cuda(), stop_token_target.cuda(), speaker_id.cuda()
-                    mel_outputs, linear_outputs, attn = model(multi_speaker, inputs, sorted_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)
+                    y_pred = model(multi_speaker, inputs, sorted_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)
 
                     # Loss
-                    mel_loss = criterion(mel_outputs, mel_targets)
-                    n_priority_freq = int(3000 / (fs * 0.5) * linear_dim)
-                    linear_loss = 0.5 * criterion(linear_outputs, y) + 0.5 * criterion(linear_outputs[:, :, :n_priority_freq],
-                                                                                       y[:, :, :n_priority_freq])
+                    print(np.shape(y_pred[1]), np.shape(linear_targets))
+                    mel_loss = criterion(y_pred[0], mel_targets)
+                    linear_loss = torch.abs(y_pred[1] - linear_targets)
+                    linear_loss = 0.5 * torch.mean(linear_loss) + 0.5 * torch.mean(linear_loss[:, :n_priority_freq, :])
                     loss = mel_loss + linear_loss
+                    loss = loss.cuda()
 
-                    if global_step > 0 and global_step % checkpoint_interval == 0:
-                        save_states(global_step, mel_outputs, linear_outputs, attn, linear_targets, sorted_lengths, checkpoint_dir)
-                        save_checkpoint(model, optimizer, global_step, checkpoint_dir, global_epoch)
-
-                    # Update
                     loss.backward()
-                    grad_norm = torch.nn.utils.clip_grad_norm(model.parameters(), clip_thresh)
+
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        model.parameters(), hparams.grad_clip_thresh)
+
                     optimizer.step()
 
-                    # Logs
-                    log_value("loss", float(loss.data[0]), global_step)
-                    log_value("mel loss", float(mel_loss.data[0]), global_step)
-                    log_value("linear loss", float(linear_loss.data[0]), global_step)
-                    log_value("gradient norm", grad_norm, global_step)
-                    log_value("learning rate", current_lr, global_step)
+                    duration = time.perf_counter() - start
+                    print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
+                            iteration, reduced_loss, grad_norm, duration))
 
-                    global_step += 1
-                    running_loss += loss.data[0]
+                    if (iteration % config.checkpoint_interval == 0):
+                            checkpoint_path = os.path.join(
+                                config.checkpoint_path, "checkpoint_{}".format(iteration))
+                            save_checkpoint(model, optimizer, learning_rate, iteration,
+                                            checkpoint_path)
 
-                averaged_loss = running_loss / (len(data_loader))
-                log_value("loss (per epoch)", averaged_loss, global_epoch)
-                print("Loss: {}".format(running_loss / (len(data_loader))))
-
-                global_epoch += 1
+                    iteration += 1
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_paths', default='./data/kss1,./data/kss2')
+    parser.add_argument('--data_paths', default='./data/kss1')
     parser.add_argument('--load_path', default=None)
     parser.add_argument('--log_dir', default='logdir-t2s')
     parser.add_argument('--checkpoint_path', type=str, default=None)
@@ -371,6 +399,8 @@ def main():
 
     parser.add_argument('--test_interval', type=int, default=500)  # 500
     parser.add_argument('--checkpoint_interval', type=int, default=2000)  # 2000
+
+    parser.add_argument('--n_gpus', type=int, default=torch.cuda.device_count())
 
     config = parser.parse_args()
     config.data_paths = config.data_paths.split(',')
