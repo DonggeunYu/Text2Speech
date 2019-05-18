@@ -21,8 +21,6 @@ from utils import infolog
 from utils.audio import save_wav, inv_spectrogram
 
 from datasets.datafeeder_tacotron import DataFeederTacotron
-import tensorboard_logger
-from tensorboard_logger import log_value
 import warnings
 import sys
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -265,7 +263,6 @@ def train_init(log_dir, config):
             exit()
 
     # Setup tensorboard logger
-    tensorboard_logger.configure("tensorboard_log/run-test")
 
     # Train!
     try:
