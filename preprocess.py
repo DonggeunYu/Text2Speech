@@ -33,7 +33,7 @@ if __name__ == "__main__":
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='kss')
-    parser.add_argument('--num_workers', type=int, default=os.cpu_count())
+    parser.add_argument('--num_workers', type=int, default=1)
 
     args = parser.parse_args()
 

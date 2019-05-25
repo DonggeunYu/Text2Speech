@@ -16,10 +16,13 @@ _pad = 0
 
 
 def get_frame(path):
-    data = np.load(path)
-    n_frame = data["linear"].shape[0]
-    n_token = len(data["tokens"])
-    return (path, n_frame, n_token)
+    try:
+        data = np.load(path)
+        n_frame = data["linear"].shape[0]
+        n_token = len(data["tokens"])
+        return (path, n_frame, n_token)
+    except:
+        print(path)
 
 
 def get_path_dict(data_dirs, hparams, config, data_type, n_test=None, rng=np.random.RandomState(123)):
