@@ -241,7 +241,7 @@ def train_init(log_dir, config):
     test_feeder = DataFeederTacotron(data_dirs, hparams, config, 8, data_type='test', batch_size=config.num_test)
 
     train_loader = DataLoader(dataset=train_feeder, batch_size=32, shuffle=False,
-                              collate_fn=collate_fn, num_workers=os.cpu_count(), pin_memory=True)
+                              collate_fn=collate_fn, num_workers=1, pin_memory=True)
     num_speakers = len(config.data_paths)
     model = Tacotron(hparams, len(symbols), num_speakers=num_speakers)
 
@@ -382,7 +382,7 @@ def train(model, data_loader, optimizer,
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_paths', default='./data/kss1')
+    parser.add_argument('--data_paths', default='./data/kss')
     parser.add_argument('--load_path', default=None)
     parser.add_argument('--log_dir', default='logdir-t2s')
     parser.add_argument('--checkpoint_path', type=str, default=None)

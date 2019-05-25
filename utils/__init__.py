@@ -132,7 +132,7 @@ def str2bool(v):
 
 def parallel_run(fn, items, desc="", parallel=True):
     results = []
-
+    print(items)
     if parallel:
         with closing(Pool(10)) as pool:
             for out in tqdm(pool.imap_unordered(fn, items), total=len(items), desc=desc):
