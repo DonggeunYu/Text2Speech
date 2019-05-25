@@ -354,7 +354,6 @@ def train(model, data_loader, optimizer,
                     y_pred = model(multi_speaker, inputs, sorted_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)
 
                     # Loss
-                    print(np.shape(y_pred[1]), np.shape(linear_targets))
                     mel_loss = criterion(y_pred[0], mel_targets)
                     linear_loss = torch.abs(y_pred[1] - linear_targets)
                     linear_loss = 0.5 * torch.mean(linear_loss) + 0.5 * torch.mean(linear_loss[:, :n_priority_freq, :])
