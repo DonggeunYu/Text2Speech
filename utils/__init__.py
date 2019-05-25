@@ -147,3 +147,4 @@ def parallel_run(fn, items, desc="", parallel=True):
         return results
     except:
         print(items)
+        quit()
