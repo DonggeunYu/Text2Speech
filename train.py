@@ -30,9 +30,6 @@ log = infolog.log
 fs = hparams['sample_rate']
 global_step = 0
 global_epoch = 0
-multi_speaker = 0
-use_cuda = torch.cuda.is_available()
-
 
 def save_and_plot_fn(args, log_dir, step, loss, prefix):
     idx, (seq, spec, align) = args
@@ -218,7 +215,7 @@ def collate_fn(batch):
         return (inputs, input_lengths, loss_coeff, mel_targets,
                 linear_targets, stop_token_targets)
 
-def train_init(log_dir, config):
+def train_init(log_dir, config, multi_speaker):
     config.data_path = config.data_paths
 
     data_dirs = config.data_paths
@@ -244,6 +241,19 @@ def train_init(log_dir, config):
                               collate_fn=collate_fn, num_workers=1, pin_memory=True)
     num_speakers = len(config.data_paths)
     model = Tacotron(hparams, len(symbols), num_speakers=num_speakers)
+
+    def count_parameters(model):
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(model)
+    print(count_parameters(model))
+
+    # GPU Setting
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+
+    if torch.cuda.device_count() > 1:
+        print("Use", torch.cuda.device_count(), "GPUs")
+        model = nn.DataParallel(model)
 
     optimizer = optim.Adam(model.parameters(), lr=hparams['initial_learning_rate'],
                            betas=(hparams['adam_beta1'], hparams['adam_beta2']))
@@ -272,7 +282,7 @@ def train_init(log_dir, config):
               checkpoint_interval=config.checkpoint_interval,
               nepochs=hparams['num_steps'],
               clip_thresh=1.0,
-              config=config)
+              config=config, multi_speaker=multi_speaker)
     except KeyboardInterrupt:
         save_checkpoint(
             model, optimizer, global_step, config.log_dir, global_epoch)
@@ -301,9 +311,11 @@ def load_checkpoint(checkpoint_path, model, optimizer):
 def train(model, data_loader, optimizer,
           init_lr=0.002,
           checkpoint_dir=None, checkpoint_interval=None, nepochs=None,
-          clip_thresh=1.0, config=None):
+          clip_thresh=1.0, config=None, multi_speaker=None):
     iteration = 0
     epoch_offset = 0
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     if config.checkpoint_path is not None:
         model, optimizer, _learning_rate, iteration = load_checkpoint(
                 config.checkpoint_path, model, optimizer)
@@ -313,15 +325,15 @@ def train(model, data_loader, optimizer,
         epoch_offset = max(0, int(iteration / len(data_loader)))
 
     model.train()
-    if use_cuda:
-        model = model.cuda()
-    linear_dim = model.linear_dim
 
     criterion = nn.L1Loss()
 
     n_priority_freq = int(3000 / (hparams['sample_rate'] * 0.5) * hparams['num_freq'])
 
-    if multi_speaker > 1: # Multi-Speaker
+    multi_speaker = torch.LongTensor(multi_speaker)
+    multi_speaker = multi_speaker.to(device)
+
+    if multi_speaker.size(0) > 1: # Multi-Speaker
         for epoch in range(epoch_offset, hparams['num_steps']):
             print("Epoch: {}".format(epoch))
             running_loss = 0.
@@ -329,59 +341,121 @@ def train(model, data_loader, optimizer,
                     in tqdm(enumerate(data_loader)):
                 start = time.perf_counter()
                 current_lr = _learning_rate_decay(init_lr, iteration)
+
+                inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
+                    inputs.to(device), loss_coeff.to(device), mel_targets.to(device), \
+                    linear_targets.to(device), stop_token_target.to(device), speaker_id.to(device)
+
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = current_lr
 
-                    optimizer.zero_grad()
+                optimizer.zero_grad()
 
-                    # Sort batch data by input_lengths
-                    sorted_lengths, indices = torch.sort(
-                        input_lengths.view(-1), dim=0, descending=True)
-                    sorted_lengths = sorted_lengths.long().numpy()
+                # Sort batch data by input_lengths
+                sorted_lengths, indices = torch.sort(
+                    input_lengths.view(-1), dim=0, descending=True)
+                sorted_lengths = sorted_lengths.long().numpy()
+                sorted_lengths = torch.LongTensor(sorted_lengths)
+                sorted_lengths = sorted_lengths.to(device)
+                sorted_lengths = Variable(sorted_lengths)
 
-                    inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
-                        inputs[indices], loss_coeff[indices], mel_targets[indices],\
-                        linear_targets[indices], stop_token_target[indices], speaker_id[indices]
+                inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
+                    inputs[indices], loss_coeff[indices], mel_targets[indices],\
+                    linear_targets[indices], stop_token_target[indices], speaker_id[indices]
+                inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
+                    Variable(inputs), Variable(loss_coeff), Variable(mel_targets), \
+                    Variable(linear_targets), Variable(stop_token_target), Variable(speaker_id)
+                y_pred = model(multi_speaker, inputs, sorted_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)
 
-                    inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
-                        Variable(inputs), Variable(loss_coeff), Variable(mel_targets), \
-                        Variable(linear_targets), Variable(stop_token_target), Variable(speaker_id)
+                # Loss
+                mel_loss = criterion(y_pred[0], mel_targets)
+                linear_loss = torch.abs(y_pred[1] - linear_targets)
+                linear_loss = 0.5 * torch.mean(linear_loss) + 0.5 * torch.mean(linear_loss[:, :n_priority_freq, :])
+                loss = mel_loss + linear_loss
+                loss = loss.to(device)
 
-                    if use_cuda:
-                        inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
-                            inputs.cuda(), loss_coeff.cuda(), mel_targets.cuda(), \
-                            linear_targets.cuda(), stop_token_target.cuda(), speaker_id.cuda()
-                    y_pred = model(multi_speaker, inputs, sorted_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)
+                loss.backward()
 
-                    # Loss
-                    mel_loss = criterion(y_pred[0], mel_targets)
-                    linear_loss = torch.abs(y_pred[1] - linear_targets)
-                    linear_loss = 0.5 * torch.mean(linear_loss) + 0.5 * torch.mean(linear_loss[:, :n_priority_freq, :])
-                    loss = mel_loss + linear_loss
-                    loss = loss.cuda()
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), hparams.grad_clip_thresh)
 
-                    loss.backward()
+                optimizer.step()
 
-                    grad_norm = torch.nn.utils.clip_grad_norm_(
-                        model.parameters(), hparams.grad_clip_thresh)
+                duration = time.perf_counter() - start
+                print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
+                    iteration, reduced_loss, grad_norm, duration))
 
-                    optimizer.step()
+                if (iteration % config.checkpoint_interval == 0):
+                    checkpoint_path = os.path.join(
+                        config.checkpoint_path, "checkpoint_{}".format(iteration))
+                    save_checkpoint(model, optimizer, learning_rate, iteration,
+                                    checkpoint_path)
 
-                    duration = time.perf_counter() - start
-                    print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
-                            iteration, reduced_loss, grad_norm, duration))
+                iteration += 1
+            else:
+                for epoch in range(epoch_offset, hparams['num_steps']):
+                    print("Epoch: {}".format(epoch))
+                    running_loss = 0.
+                    for step, (inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target) \
+                            in tqdm(enumerate(data_loader)):
+                        start = time.perf_counter()
+                        current_lr = _learning_rate_decay(init_lr, iteration)
 
-                    if (iteration % config.checkpoint_interval == 0):
-                            checkpoint_path = os.path.join(
-                                config.checkpoint_path, "checkpoint_{}".format(iteration))
-                            save_checkpoint(model, optimizer, learning_rate, iteration,
-                                            checkpoint_path)
+                        inputs, loss_coeff, mel_targets, linear_targets, stop_token_target = \
+                            inputs.to(device), loss_coeff.to(device), mel_targets.to(device), \
+                            linear_targets.to(device), stop_token_target.to(device)
 
-                    iteration += 1
+                        for param_group in optimizer.param_groups:
+                            param_group['lr'] = current_lr
+
+                            optimizer.zero_grad()
+
+                            # Sort batch data by input_lengths
+                            sorted_lengths, indices = torch.sort(
+                                input_lengths.view(-1), dim=0, descending=True)
+                            sorted_lengths = sorted_lengths.long().numpy()
+
+                            inputs, loss_coeff, mel_targets, linear_targets, stop_token_target = \
+                                inputs[indices], loss_coeff[indices], mel_targets[indices], \
+                                linear_targets[indices], stop_token_target[indices]
+
+                            inputs, loss_coeff, mel_targets, linear_targets, stop_token_target = \
+                                Variable(inputs), Variable(loss_coeff), Variable(mel_targets), \
+                                Variable(linear_targets), Variable(stop_token_target)
+
+                            y_pred = model(multi_speaker, inputs, sorted_lengths, loss_coeff, mel_targets,
+                                           linear_targets, stop_token_target)
+
+                            # Loss
+                            mel_loss = criterion(y_pred[0], mel_targets)
+                            linear_loss = torch.abs(y_pred[1] - linear_targets)
+                            linear_loss = 0.5 * torch.mean(linear_loss) + 0.5 * torch.mean(
+                                linear_loss[:, :n_priority_freq, :])
+                            loss = mel_loss + linear_loss
+                            loss = loss.to(device)
+
+                            loss.backward()
+
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                model.parameters(), hparams.grad_clip_thresh)
+
+                            optimizer.step()
+
+                            duration = time.perf_counter() - start
+                            print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
+                                iteration, reduced_loss, grad_norm, duration))
+
+                            if (iteration % config.checkpoint_interval == 0):
+                                checkpoint_path = os.path.join(
+                                    config.checkpoint_path, "checkpoint_{}".format(iteration))
+                                save_checkpoint(model, optimizer, learning_rate, iteration,
+                                                checkpoint_path)
+
+                            iteration += 1
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_paths', default='./data/kss')
+    parser.add_argument('--data_paths', default='./data/kss,./data/kss1')
     parser.add_argument('--load_path', default=None)
     parser.add_argument('--log_dir', default='logdir-t2s')
     parser.add_argument('--checkpoint_path', type=str, default=None)
@@ -401,7 +475,6 @@ def main():
     config = parser.parse_args()
     config.data_paths = config.data_paths.split(',')
     hparams.update({"num_speakers": len(config.data_paths)})
-    global multi_speaker
     multi_speaker = len(config.data_paths)
     prepare_dirs(config, hparams)
 
@@ -414,7 +487,7 @@ def main():
     if config.load_path is not None and config.initialize_path is not None:
         raise Exception(" [!] Only one of load_path and initialize_path should be set")
 
-    train_init(config.model_dir, config)
+    train_init(config.model_dir, config, multi_speaker)
 
 if __name__ == '__main__':
     main()

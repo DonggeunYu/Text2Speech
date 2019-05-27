@@ -5,3 +5,4 @@ logdir-tacotron/
 logdir-t2s/
 **/__pycache__/
 tensorboard_log/
+**/.idea/

@@ -30,14 +30,11 @@ class Tacotron(nn.Module):
         self.decoder = Decoder(mel_dim, r)
 
         self.postnet = Postnet(hparams)
-        self.last_linear = nn.Linear(mel_dim * 2, linear_dim)
-
-        self.linear_layer = nn.Linear(18000, 225 * hparams['num_freq'])
-
 
     def forward(self, num_speakers, inputs, input_lengths, loss_coeff, mel_targets=None, linear_targets=None, stop_token_targets=None, speaker_id=None):
-        self.num_speakers = num_speakers
-
+        self.num_speakers = num_speakers.size(0)
+        print(num_speakers.get_device(), input_lengths.get_device(), loss_coeff.get_device(),
+              mel_targets.get_device(), linear_targets.get_device(), stop_token_targets.get_device(), speaker_id.get_device())
         B = inputs.size(0)
         char_embedded_inputs = F.embedding(inputs, self.char_embed_table)
 
@@ -218,11 +215,11 @@ class Decoder(nn.Module):
             nn.GRUCell(256 + 128, 256),
             BahdanauAttention(256)
         )
-        self.memory_layer = nn.Linear(256, 512, bias=False)
-        self.project_to_decoder_in = nn.Linear(512, 256)
+        #self.memory_layer = nn.Linear(256, 512, bias=False)
+        #self.project_to_decoder_in = nn.Linear(512, 256)
 
-        self.decoder_rnns = nn.ModuleList(
-            [nn.GRUCell(256, 256) for _ in range(2)])
+        #self.decoder_rnns = nn.ModuleList(
+            #[nn.GRUCell(256, 256) for _ in range(2)])
 
         self.attention_rnn = nn.LSTMCell(
             hparams['prenet_dim'] + hparams['embedding_size'],
