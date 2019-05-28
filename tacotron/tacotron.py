@@ -25,16 +25,18 @@ class Tacotron(nn.Module):
         self.char_embed_table = Variable(torch.zeros(n_vocab, embedding_dim), requires_grad=True)
         self.char_embed_table[:] = 0.5
         self.char_embed_table = torch.cat((Variable(torch.zeros(1, embedding_dim), ), self.char_embed_table[1:, :]), 0)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.char_embed_table = self.char_embed_table.to(device)
 
         self.encoder = Encoder(embedding_dim)
         self.decoder = Decoder(mel_dim, r)
 
         self.postnet = Postnet(hparams)
+        self.postnet_linear = nn.Linear(80 * 245, 245 * 1025)
 
     def forward(self, num_speakers, inputs, input_lengths, loss_coeff, mel_targets=None, linear_targets=None, stop_token_targets=None, speaker_id=None):
         self.num_speakers = num_speakers.size(0)
-        print(num_speakers.get_device(), input_lengths.get_device(), loss_coeff.get_device(),
-              mel_targets.get_device(), linear_targets.get_device(), stop_token_targets.get_device(), speaker_id.get_device())
+
         B = inputs.size(0)
         char_embedded_inputs = F.embedding(inputs, self.char_embed_table)
 
@@ -49,15 +51,13 @@ class Tacotron(nn.Module):
         # Post net processing below
         mel_outputs_postnet = self.postnet(mel_outputs)
         mel_outputs_postnet = mel_outputs + mel_outputs_postnet
-        mel_outputs = mel_outputs_postnet.transpose(1, 2)
+        print(np.shape(mel_outputs_postnet))
+        mel_outputs_postnet = self.postnet_linear(mel_outputs_postnet)
 
-        #mel_outputs_postnet = mel_outputs_postnet.view(-1, 80)
-        b_size = mel_outputs_postnet.size(0)
-        linear_outputs = mel_outputs_postnet.view(b_size, -1)
-        linear_outputs = self.linear_layer(linear_outputs)
-        linear_outputs = linear_outputs.view(b_size, -1, 1025)
+        mel_outputs = mel_outputs.contiguous()
+        mel_outputs = mel_outputs.view(32, -1, 80)
 
-        return [mel_outputs, linear_outputs]
+        return [mel_outputs, mel_outputs_postnet, gate_outputs, alignments]
 
     def inference(self, inputs):
         inputs = self.parse_input(inputs)

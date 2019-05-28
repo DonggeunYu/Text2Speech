@@ -244,16 +244,11 @@ def train_init(log_dir, config, multi_speaker):
 
     def count_parameters(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(model)
-    print(count_parameters(model))
 
-    # GPU Setting
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
 
-    if torch.cuda.device_count() > 1:
-        print("Use", torch.cuda.device_count(), "GPUs")
-        model = nn.DataParallel(model)
+    #if torch.cuda.device_count() > 1:
+        #print("Use", torch.cuda.device_count(), "GPUs")
+        #model = nn.DataParallel(model)
 
     optimizer = optim.Adam(model.parameters(), lr=hparams['initial_learning_rate'],
                            betas=(hparams['adam_beta1'], hparams['adam_beta2']))
@@ -314,7 +309,7 @@ def train(model, data_loader, optimizer,
           clip_thresh=1.0, config=None, multi_speaker=None):
     iteration = 0
     epoch_offset = 0
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if config.checkpoint_path is not None:
         model, optimizer, _learning_rate, iteration = load_checkpoint(
@@ -324,14 +319,15 @@ def train(model, data_loader, optimizer,
         iteration += 1  # next iteration is iteration + 1
         epoch_offset = max(0, int(iteration / len(data_loader)))
 
-    model.train()
 
+    model.train()
+    model.to(device)
     criterion = nn.L1Loss()
 
     n_priority_freq = int(3000 / (hparams['sample_rate'] * 0.5) * hparams['num_freq'])
 
     multi_speaker = torch.LongTensor(multi_speaker)
-    multi_speaker = multi_speaker.to(device)
+    multi_speaker = Variable(multi_speaker.to(device))
 
     if multi_speaker.size(0) > 1: # Multi-Speaker
         for epoch in range(epoch_offset, hparams['num_steps']):

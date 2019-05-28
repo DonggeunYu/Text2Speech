@@ -285,7 +285,6 @@ class ConvNorm(torch.nn.Module):
         return conv_signal
 
 def get_mask_from_lengths(lengths):
-    lengths = torch.from_numpy(lengths)
     max_len = torch.max(lengths).item()
     if torch.cuda.is_available():
         ids = torch.arange(0, max_len, out=torch.cuda.LongTensor(max_len))
