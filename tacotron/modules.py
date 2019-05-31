@@ -5,15 +5,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-import tensorflow as tf
-from tensorflow.keras.layers import GRUCell
-from tensorflow.python.ops import init_ops
-from tensorflow.python.layers import core
 
 
-def get_embed(inputs, num_inputs, embed_size, name):  # speaker_id, self.num_speakers, hp.enc_prenet_sizes[-1], "before_highway"
-    embed_table = tf.get_variable(name, [num_inputs, embed_size], dtype=tf.float32, initializer=tf.truncated_normal_initializer(stddev=0.1))
-    return tf.nn.embedding_lookup(embed_table, inputs)
 
 class Prenet(nn.Module):
     def __init__(self, in_dim, sizes):
@@ -103,7 +96,7 @@ class Postnet(nn.Module):
         - Five 1-d convolution with 512 channels and kernel size 5
     """
 
-    def     __init__(self, hparams):
+    def __init__(self, hparams):
         super(Postnet, self).__init__()
         self.convolutions = nn.ModuleList()
 

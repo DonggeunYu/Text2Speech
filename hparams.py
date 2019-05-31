@@ -7,6 +7,9 @@ hparams = {
   "skip_path_filter": False,
   "use_lws": False,
 
+  'learning_rate': 1e-3,
+  'weight_decay': 1e-6,
+
   "sample_rate": 44100,
 
   "hop_size": 300,
