@@ -177,8 +177,8 @@ class Encoder(nn.Module):
                          kernel_size=hp['enc_conv_kernel_size'], stride=1,
                          padding=int((hp['enc_conv_kernel_size'] - 1) / 2),
                          dilation=1, w_init_gain='relu'),
-                nn.BatchNorm1d(hp['enc_conv_channels']))
-                nn.Dropout()
+                nn.BatchNorm1d(hp['enc_conv_channels']),
+                nn.Dropout())
             convolutions.append(conv_layer)
         self.convolutions = nn.ModuleList(convolutions)
 

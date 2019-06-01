@@ -4,8 +4,6 @@ from utils import audio
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from text import text_to_sequence
-from operator import eq
-
 
 def build_from_path(hparams, in_dir, out_dir, num_workers=1, tqdm=lambda x: x):
     """

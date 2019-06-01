@@ -1,30 +1,25 @@
-import argparse
 import os
-import time
-import numpy as np
-import torch
-import math
-from torch import optim
-from torch import nn as nn
-from torch.utils.data import DataLoader
-from torch.autograd import Variable
-import torch.distributed as dist
-from hparams import hparams
-from tacotron.tacotron import Tacotron
-from text.symbols import symbols
-from os.path import join, dirname
-from tqdm import tqdm
-from utils.logger import Tacotron2Logger
-
-
-from utils import prepare_dirs, ValueWindow, str2bool
-from utils import infolog
-
-from utils.audio import save_wav, inv_spectrogram
-
-from datasets.datafeeder_tacotron import DataFeederTacotron
-import warnings
 import sys
+import time
+import torch
+import warnings
+import argparse
+import numpy as np
+import torch.distributed as dist
+
+from tqdm import tqdm
+from torch import optim
+from utils import infolog
+from torch import nn as nn
+from hparams import hparams
+from text.symbols import symbols
+from torch.autograd import Variable
+from tacotron.tacotron import Tacotron
+from torch.utils.data import DataLoader
+from utils.logger import Tacotron2Logger
+from utils import prepare_dirs, str2bool
+from datasets.datafeeder_tacotron import DataFeederTacotron
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 log = infolog.log
@@ -33,40 +28,9 @@ fs = hparams['sample_rate']
 global_step = 0
 global_epoch = 0
 
-def save_and_plot_fn(args, log_dir, step, loss, prefix):
-    idx, (seq, spec, align) = args
-
-    audio_path = os.path.join(log_dir, '{}-step-{:09d}-audio{:03d}.wav'.format(prefix, step, idx))
-    align_path = os.path.join(log_dir, '{}-step-{:09d}-align{:03d}.png'.format(prefix, step, idx))
-
-    waveform = inv_spectrogram(spec.T,hparams)
-    save_wav(waveform, audio_path,hparams.sample_rate)
-
-    info_text = 'step={:d}, loss={:.5f}'.format(step, loss)
-    if 'korean_cleaners' in [x.strip() for x in hparams.cleaners.split(',')]:
-        log('Training korean : Use jamo')
-        plot.plot_alignment( align, align_path, info=info_text, text=sequence_to_text(seq,skip_eos_and_pad=True, combine_jamo=True), isKorean=True)
-    else:
-        log('Training non-korean : X use jamo')
-        plot.plot_alignment(align, align_path, info=info_text,text=sequence_to_text(seq,skip_eos_and_pad=True, combine_jamo=False), isKorean=False)
-
-def save_and_plot(sequences, spectrograms,alignments, log_dir, step, loss, prefix):
-
-    fn = partial(save_and_plot_fn,log_dir=log_dir, step=step, loss=loss, prefix=prefix)
-    items = list(enumerate(zip(sequences, spectrograms, alignments)))
-
-    parallel_run(fn, items, parallel=False)
-    log('Test finished for step {}.'.format(step))
-
 def _pad(seq, max_len):
     return np.pad(seq, (0, max_len - len(seq)),
                   mode='constant', constant_values=0)
-
-
-def _pad_2d(x, max_len):
-    x = np.pad(x, [(0, max_len - len(x)), (0, 0)],
-               mode="constant", constant_values=0)
-    return x
 
 def _prepare_inputs(inputs):  # inputs: batch 길이 만큼의 list
     max_len = max((len(x) for x in inputs))
@@ -80,11 +44,6 @@ def _prepare_targets(targets, alignment):
 def _prepare_stop_token_targets(targets, alignment):
     max_len = max((len(t) for t in targets)) + 1
     return np.stack([_pad_stop_token_target(t, _round_up(max_len, alignment)) for t in targets])
-
-
-def _pad_input(x, length):
-    return np.pad(x, (0, length - x.shape[0]), mode='constant', constant_values=0)
-
 
 def _pad_target(t, length):
     # t: 2 dim array. ( xx, num_mels) ==> (length,num_mels)
@@ -105,40 +64,6 @@ def _learning_rate_decay(init_lr, global_step):
     lr = init_lr * warmup_steps**0.5 * np.minimum(
         step * warmup_steps**-1.5, step**-0.5)
     return lr
-
-def save_states(global_step, mel_outputs, linear_outputs, attn, y,
-                input_lengths, checkpoint_dir=None):
-    print("Save intermediate states at step {}".format(global_step))
-
-    # idx = np.random.randint(0, len(input_lengths))
-    idx = min(1, len(input_lengths) - 1)
-    input_length = input_lengths[idx]
-
-    # Alignment
-    path = join(checkpoint_dir, "step{}_alignment.png".format(
-        global_step))
-    # alignment = attn[idx].cpu().data.numpy()[:, :input_length]
-    alignment = attn[idx].cpu().data.numpy()
-    save_alignment(path, alignment)
-
-    # Predicted spectrogram
-    path = join(checkpoint_dir, "step{}_predicted_spectrogram.png".format(
-        global_step))
-    linear_output = linear_outputs[idx].cpu().data.numpy()
-    save_spectrogram(path, linear_output)
-
-    # Predicted audio signal
-    signal = audio.inv_spectrogram(linear_output.T)
-    path = join(checkpoint_dir, "step{}_predicted.wav".format(
-        global_step))
-    audio.save_wav(signal, path)
-
-    # Target spectrogram
-    path = join(checkpoint_dir, "step{}_target_spectrogram.png".format(
-        global_step))
-    linear_output = y[idx].cpu().data.numpy()
-    save_spectrogram(path, linear_output)
-
 
 def collate_fn(batch):
     """Create batch"""
@@ -229,12 +154,6 @@ def train_init(log_dir, config, multi_speaker):
 
     print("Finished")
     sys.exit(0)
-
-def reduce_tensor(tensor, n_gpus):
-    rt = tensor.clone()
-    dist.all_reduce(rt, op=dist.reduce_op.SUM)
-    rt /= n_gpus
-    return rt
 
 def load_checkpoint(checkpoint_path, model, optimizer):
     print(checkpoint_path)
