@@ -12,9 +12,9 @@ hparams = {
 
   "sample_rate": 44100,
 
-  "hop_size": 300,
-  "fft_size": 2048,
-  "win_size": 1200,
+  "hop_size": 256,
+  "fft_size": 2046,
+  "win_size": 1024,
   "num_mels": 80,
 
   "preemphasize": False,
@@ -163,6 +163,6 @@ hparams = {
   "mask_padding": True
 }
 
-hparams["num_freq"] = int(hparams['fft_size']/2 + 1)
+hparams["num_freq"] = 1024
 hparams['frame_shift_ms'] = hparams['hop_size'] * 1000.0/ hparams['sample_rate']      # hop_size=  sample_rate *  frame_shift_ms / 1000
 hparams['frame_length_ms'] = hparams['win_size'] * 1000.0/ hparams['sample_rate']

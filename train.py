@@ -5,7 +5,6 @@ import torch
 import warnings
 import argparse
 import numpy as np
-import torch.distributed as dist
 
 from tqdm import tqdm
 from torch import optim
@@ -15,12 +14,14 @@ from hparams import hparams
 from text.symbols import symbols
 from torch.autograd import Variable
 from tacotron.tacotron import Tacotron
+from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 from utils.logger import Tacotron2Logger
 from utils import prepare_dirs, str2bool
 from datasets.datafeeder_tacotron import DataFeederTacotron
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
+summary = SummaryWriter()
 
 log = infolog.log
 
@@ -133,12 +134,9 @@ def train_init(log_dir, config, multi_speaker):
     num_speakers = len(config.data_paths)
     model = Tacotron(hparams, len(symbols), num_speakers=num_speakers)
 
-    def count_parameters(model):
-        return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
     optimizer = optim.Adam(model.parameters(), lr=hparams['initial_learning_rate'],
                            betas=(hparams['adam_beta1'], hparams['adam_beta2']))
-
+    
     # Train!
     try:
         train(model, train_loader, test_feeder, optimizer,
@@ -210,17 +208,14 @@ def validate(model, criterion, valset, iteration, batch_size,
             y_pred = model(multi_speaker, inputs, sorted_lengths, loss_coeff, mel_targets, linear_targets,
                            stop_token_target, speaker_id)
 
-            mel_loss = criterion(y_pred[0], mel_targets)
-            linear_loss = torch.abs(y_pred[1] - linear_targets)
-            linear_loss = 0.5 * torch.mean(linear_loss) + 0.5 * torch.mean(linear_loss[:, :n_priority_freq, :])
-            loss = mel_loss + linear_loss
-            reduced_val_loss = loss.item()
-            val_loss += reduced_val_loss
+            loss = criterion(y_pred[0], mel_targets)
+            loss = loss.item()
+            val_loss += loss
         val_loss = val_loss / (i + 1)
 
     model.train()
-    print("Validation loss {}: {:9f}  ".format(iteration, reduced_val_loss))
-    logger.log_validation(reduced_val_loss, model, (mel_targets, linear_targets), y_pred, iteration)
+    print("Validation loss {:9f}  ".format(loss))
+    logger.log_validation(loss, model, (mel_targets, linear_targets), y_pred, iteration)
 
 def train(model, data_loader, test_loader, optimizer,
           init_lr=0.002,
@@ -245,11 +240,15 @@ def train(model, data_loader, test_loader, optimizer,
 
     model.train()
     model.to(device)
+
     #if torch.cuda.device_count() > 1:
         #print("Use", torch.cuda.device_count(), "GPUs")
         #model = nn.DataParallel(model)
 
     criterion = nn.L1Loss()
+
+    logger = prepare_directories_and_logger(
+        config.logger_path)
 
     n_priority_freq = int(3000 / (hparams['sample_rate'] * 0.5) * hparams['num_freq'])
 
@@ -291,12 +290,14 @@ def train(model, data_loader, test_loader, optimizer,
                 y_pred = model(multi_speaker, inputs, sorted_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)
 
                 # Loss
-                mel_loss = criterion(y_pred[0], mel_targets)
-                linear_loss = torch.abs(y_pred[1] - linear_targets)
-                linear_loss = 0.5 * torch.mean(linear_loss) + 0.5 * torch.mean(linear_loss[:, :n_priority_freq, :])
-                loss = mel_loss + linear_loss
+                #mel_loss = criterion(y_pred[0], mel_targets)
+                #print(np.shape(y_pred[1]), np.shape(linear_targets))
+                #linear_loss = criterion(y_pred[1], linear_targets)
+                #loss = mel_loss + linear_loss
                 #loss = loss.to(device)
-
+                #loss.backward()
+                loss = criterion(y_pred[0], mel_targets)
+                loss = loss.to(device)
                 loss.backward()
 
                 #grad_norm = torch.nn.utils.clip_grad_norm_(
@@ -305,8 +306,9 @@ def train(model, data_loader, test_loader, optimizer,
                 optimizer.step()
 
                 #duration = time.perf_counter() - start
-                print("Loss {}".format(
-                    loss))
+                #print("Loss {0:.2f}, mel_loss {1:.2f}, linear_loss {2:.2f}".format(
+                    #loss, mel_loss, linear_loss))
+                print("Loss {0:.2f}".format(loss))
 
                 iteration += 1
             if (epoch % config.checkpoint_interval == 0):
@@ -314,6 +316,14 @@ def train(model, data_loader, test_loader, optimizer,
                     config.checkpoint_path, "checkpoint_{}".format(epoch))
                 save_checkpoint(model, optimizer, learning_rate, epoch,
                                 checkpoint_path)
+
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), 1.0)
+
+                duration = time.perf_counter() - start
+
+                logger.log_training(
+                    loss, grad_norm, learning_rate, duration, iteration)
 
                 validate(model, criterion, test_loader, iteration,
                          config.batch_size, collate_fn, logger, multi_speaker)
@@ -324,10 +334,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_paths', default='./data/kss,./data/kss1')
     parser.add_argument('--load_path', default=None)
-    parser.add_argument('--checkpoint_file', default='./checkpoint_path/checkpoint_2')
+    parser.add_argument('--checkpoint_file', default=None) #'./checkpoint_path/checkpoint_2'
     parser.add_argument('--log_dir', default='logdir-tacotron')
     parser.add_argument('--wav_dir', default='./wav/')
     parser.add_argument('--checkpoint_path', type=str, default='./checkpoint_path/')
+    parser.add_argument('--logger_path', default='./logger/')
 
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_test_per_speaker', type=int, default=2)
@@ -337,7 +348,7 @@ def main():
     parser.add_argument('--initialize_path', default=None)
 
     parser.add_argument('--test_interval', type=int, default=500)  # 500
-    parser.add_argument('--checkpoint_interval', type=int, default=2)  # 2000
+    parser.add_argument('--checkpoint_interval', type=int, default=1)  # 2000
 
     parser.add_argument('--n_gpus', type=int, default=torch.cuda.device_count())
 

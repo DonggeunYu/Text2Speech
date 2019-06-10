@@ -1,10 +1,5 @@
-import torch.nn as nn
 import torch
-from torch.nn import functional as F
-import numpy as np
-
-from text.symbols import symbols
-from utils.infolog import log
+from math import sqrt
 from .modules import *
 from .attention import BahdanauAttention, AttentionWrapper
 from torch.autograd import Variable
@@ -22,27 +17,36 @@ class Tacotron(nn.Module):
         self.mel_dim = mel_dim
         self.linear_dim = linear_dim
         embedding_dim = hparams['embedding_size']
-        self.char_embed_table = Variable(torch.zeros(n_vocab, embedding_dim))
-        self.char_embed_table[:] = 0.5
-        self.char_embed_table = torch.cat((Variable(torch.zeros(1, embedding_dim), ), self.char_embed_table[1:, :]), 0)
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.char_embed_table = self.char_embed_table.to(device)
+
+        self.embedding = nn.Embedding(n_vocab, embedding_dim)
+        std = sqrt(2.0 / (n_vocab + embedding_dim))
+        val = sqrt(3.0) * std  # uniform bounds for std
+        self.embedding.weight.data.uniform_(-val, val)
+
+        self.speaker_embed_table = nn.Embedding(num_speakers, hparams['speaker_embedding_size'])
+        self.deep_dense = lambda x, dim: nn.Sequential(nn.Linear(x, dim), nn.Softsign())  # softsign: x / (abs(x) + 1)
+        self.deep_linear = nn.Linear(hparams['speaker_embedding_size'], 512)
 
         self.encoder = Encoder(embedding_dim)
         self.decoder = Decoder(mel_dim, r)
 
         self.postnet = Postnet(hparams)
-        self.postnet_linear = nn.Linear(80, 1025)
+        self.postnet_linear = nn.Linear(80, 1024)
 
     def forward(self, num_speakers, inputs, input_lengths, loss_coeff, mel_targets=None, linear_targets=None, stop_token_targets=None, speaker_id=None):
         self.num_speakers = num_speakers.size(0)
-
-        B = inputs.size(0)
-        char_embedded_inputs = F.embedding(inputs, self.char_embed_table)
-
         # (B, T', in_dim)
-        char_embedded_inputs = char_embedded_inputs.transpose(1, 2)
-        encoder_outputs = self.encoder(char_embedded_inputs, input_lengths)
+        embedded_inputs = self.embedding(inputs).transpose(1, 2)
+        embedded_inputs = embedded_inputs.contiguous()
+        B_size = embedded_inputs.size(0)
+        embedded_inputs = embedded_inputs.view(B_size, -1)
+
+        speaker_embed = self.speaker_embed_table(speaker_id)
+        speaker_embed = self.deep_linear(speaker_embed)
+        speaker_embed = speaker_embed.view(speaker_embed.size(0), -1)
+        embed = torch.cat([embedded_inputs, speaker_embed], 1).view(B_size, 512, -1)
+
+        encoder_outputs = self.encoder(embed, input_lengths)
 
         # (B, T', mel_dim*r)
         mel_outputs, gate_outputs, alignments = self.decoder(
@@ -52,40 +56,52 @@ class Tacotron(nn.Module):
         mel_outputs_postnet = self.postnet(mel_outputs)
         mel_outputs_postnet = mel_outputs + mel_outputs_postnet
 
-        mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
-        mel_outputs_postnet = self.postnet_linear(mel_outputs_postnet)
+        B_size = mel_outputs_postnet.size(0)
+        mel_outputs_postnet = mel_outputs_postnet.view(B_size, -1, 80)
 
-        mel_outputs = mel_outputs.contiguous()
-        B_size = mel_outputs.size(0)
-        mel_outputs = mel_outputs.view(B_size, -1, 80)
+        #mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
+        #mel_outputs_postnet = self.postnet_linear(mel_outputs_postnet)
 
-        return [mel_outputs, mel_outputs_postnet, gate_outputs, alignments]
+        #mel_outputs = mel_outputs.contiguous()
+        #B_size = mel_outputs.size(0)
+        #mel_outputs = mel_outputs.view(B_size, -1, 80)
 
-    def inference(self, inputs):
-        self.num_speakers = num_speakers.size(0)
+        return [mel_outputs_postnet, gate_outputs, alignments]
 
-        B = inputs.size(0)
-        char_embedded_inputs = F.embedding(inputs, self.char_embed_table)
+        #return [mel_outputs, mel_outputs_postnet, gate_outputs, alignments]
 
-        # (B, T', in_dim)
-        char_embedded_inputs = char_embedded_inputs.transpose(1, 2)
-        encoder_outputs = self.encoder.inference(char_embedded_inputs)
+    def inference(self, inputs, speaker_id):
+        embedded_inputs = self.embedding(inputs).transpose(1, 2)
+        embedded_inputs = embedded_inputs.contiguous()
+        embedded_inputs = embedded_inputs.view(embedded_inputs.size(0), -1)
+        speaker_embed = self.speaker_embed_table(speaker_id)
+        speaker_embed = self.deep_linear(speaker_embed)
+        speaker_embed = speaker_embed.view(speaker_embed.size(0), -1)
+        embed = torch.cat([embedded_inputs, speaker_embed], 1).view(1, 512, -1)
+
+        encoder_outputs = self.encoder.inference(embed)
 
         # (B, T', mel_dim*r)
-        mel_outputs, gate_outputs, alignments = self.decoder(encoder_outputs)
+        mel_outputs, gate_outputs, alignments = self.decoder.inference(
+            encoder_outputs)
 
         # Post net processing below
         mel_outputs_postnet = self.postnet(mel_outputs)
         mel_outputs_postnet = mel_outputs + mel_outputs_postnet
 
-        mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
-        mel_outputs_postnet = self.postnet_linear(mel_outputs_postnet)
+        B_size = mel_outputs_postnet.size(0)
+        mel_outputs_postnet = mel_outputs_postnet.view(B_size, -1, 80)
 
-        mel_outputs = mel_outputs.contiguous()
-        B_size = mel_outputs.size(0)
-        mel_outputs = mel_outputs.view(B_size, -1, 80)
+        #mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
+        #mel_outputs_postnet = self.postnet_linear(mel_outputs_postnet)
 
-        return [mel_outputs, mel_outputs_postnet, gate_outputs, alignments]
+        #mel_outputs = mel_outputs.contiguous()
+        #B_size = mel_outputs.size(0)
+        #mel_outputs = mel_outputs.view(B_size, -1, 80)
+
+        return [mel_outputs_postnet, gate_outputs, alignments]
+
+        #return [mel_outputs, mel_outputs_postnet, gate_outputs, alignments]
 
 class LocationLayer(nn.Module):
     def __init__(self, attention_n_filters, attention_kernel_size,
@@ -187,12 +203,10 @@ class Encoder(nn.Module):
                             batch_first=True, bidirectional=True)
 
     def forward(self, x, input_lengths=None):
-
         for conv in self.convolutions:
             x = F.dropout(F.relu(conv(x)), 0.5, self.training)
-
-
         x = x.transpose(1, 2)
+
 
         # pytorch tensor are not reversible, hence the conversion
         x = nn.utils.rnn.pack_padded_sequence(

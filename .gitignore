@@ -1,8 +1,13 @@
 datasets/kss/
+.ipynb_checkpoints/
+checkpoint_path/
 training_data/
 data/
 logdir-tacotron/
 logdir-t2s/
+logger/
 **/__pycache__/
 tensorboard_log/
 **/.idea/
+runs/
+*.pt
