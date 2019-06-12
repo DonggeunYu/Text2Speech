@@ -45,7 +45,7 @@ def plot_data(data, figsize=(16, 4)):
 # In[3]:
 
 
-checkpoint_path = './checkpoint_path/checkpoint_0'
+checkpoint_path = './checkpoint_path/checkpoint_400'
 waveglow_path = 'waveglow/waveglow_256channels.pt'
 num_speakers = 2
 speaker_id = 0

@@ -71,13 +71,16 @@ class Tacotron(nn.Module):
         #return [mel_outputs, mel_outputs_postnet, gate_outputs, alignments]
 
     def inference(self, inputs, speaker_id):
+        # (B, T', in_dim)
         embedded_inputs = self.embedding(inputs).transpose(1, 2)
         embedded_inputs = embedded_inputs.contiguous()
-        embedded_inputs = embedded_inputs.view(embedded_inputs.size(0), -1)
+        B_size = embedded_inputs.size(0)
+        embedded_inputs = embedded_inputs.view(B_size, -1)
+
         speaker_embed = self.speaker_embed_table(speaker_id)
         speaker_embed = self.deep_linear(speaker_embed)
         speaker_embed = speaker_embed.view(speaker_embed.size(0), -1)
-        embed = torch.cat([embedded_inputs, speaker_embed], 1).view(1, 512, -1)
+        embed = torch.cat([embedded_inputs, speaker_embed], 1).view(B_size, 512, -1)
 
         encoder_outputs = self.encoder.inference(embed)
 
@@ -207,7 +210,7 @@ class Encoder(nn.Module):
             x = F.dropout(F.relu(conv(x)), 0.5, self.training)
         x = x.transpose(1, 2)
 
-
+        input_lengths = input_lengths.cpu().numpy()
         # pytorch tensor are not reversible, hence the conversion
         x = nn.utils.rnn.pack_padded_sequence(
             x, input_lengths, batch_first=True)
@@ -283,7 +286,6 @@ class Decoder(nn.Module):
             bias=True, w_init_gain='sigmoid')
 
         self.proj_to_mel = nn.Linear(256, in_dim * r)
-        self.max_decoder_steps = 200
 
     def get_go_frame(self, memory):
         """ Gets all zeros frames to use as first decoder input

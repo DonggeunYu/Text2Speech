@@ -6,7 +6,6 @@ import warnings
 import argparse
 import numpy as np
 
-from tqdm import tqdm
 from torch import optim
 from utils import infolog
 from torch import nn as nn
@@ -143,7 +142,7 @@ def train_init(log_dir, config, multi_speaker):
               init_lr=hparams['initial_learning_rate'],
               checkpoint_dir=config.log_dir,
               checkpoint_interval=config.checkpoint_interval,
-              nepochs=hparams['num_steps'],
+              nepochs=hparams['tacotron_decay_steps'],
               clip_thresh=1.0,
               config=config, multi_speaker=multi_speaker)
     except KeyboardInterrupt:
@@ -256,11 +255,11 @@ def train(model, data_loader, test_loader, optimizer,
     multi_speaker = Variable(multi_speaker.to(device))
 
     if multi_speaker.size(0) > 1: # Multi-Speaker
-        for epoch in range(epoch_offset, hparams['num_steps']):
+        for epoch in range(epoch_offset, nepochs):
             print("Epoch: {}".format(epoch))
             running_loss = 0.
             for step, (inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)\
-                    in tqdm(enumerate(data_loader)):
+                    in enumerate(data_loader):
                 start = time.perf_counter()
                 current_lr = _learning_rate_decay(init_lr, iteration)
 
@@ -294,23 +293,26 @@ def train(model, data_loader, test_loader, optimizer,
                 #print(np.shape(y_pred[1]), np.shape(linear_targets))
                 #linear_loss = criterion(y_pred[1], linear_targets)
                 #loss = mel_loss + linear_loss
-                #loss = loss.to(device)
+                #loss = loss.to(devicse)
                 #loss.backward()
                 loss = criterion(y_pred[0], mel_targets)
                 loss = loss.to(device)
                 loss.backward()
 
-                #grad_norm = torch.nn.utils.clip_grad_norm_(
-                    #model.parameters(), 1.0)
-
                 optimizer.step()
 
-                #duration = time.perf_counter() - start
-                #print("Loss {0:.2f}, mel_loss {1:.2f}, linear_loss {2:.2f}".format(
-                    #loss, mel_loss, linear_loss))
-                print("Loss {0:.2f}".format(loss))
+                duration = time.perf_counter() - start
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), 1.0)
+
+                print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
+                    iteration, loss, grad_norm, duration))
 
                 iteration += 1
+
+            logger.log_training(
+                loss, grad_norm, learning_rate, duration, iteration)
+
             if (epoch % config.checkpoint_interval == 0):
                 checkpoint_path = os.path.join(
                     config.checkpoint_path, "checkpoint_{}".format(epoch))
@@ -319,11 +321,6 @@ def train(model, data_loader, test_loader, optimizer,
 
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     model.parameters(), 1.0)
-
-                duration = time.perf_counter() - start
-
-                logger.log_training(
-                    loss, grad_norm, learning_rate, duration, iteration)
 
                 validate(model, criterion, test_loader, iteration,
                          config.batch_size, collate_fn, logger, multi_speaker)
@@ -342,13 +339,10 @@ def main():
 
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_test_per_speaker', type=int, default=2)
-    parser.add_argument('--random_seed', type=int, default=100)
+    parser.add_argument('--random_seed', type=int, default=123)
     parser.add_argument('--skip_path_filter', type=str2bool, default=False, help='Use only for debugging')
 
-    parser.add_argument('--initialize_path', default=None)
-
-    parser.add_argument('--test_interval', type=int, default=500)  # 500
-    parser.add_argument('--checkpoint_interval', type=int, default=1)  # 2000
+    parser.add_argument('--checkpoint_interval', type=int, default=100)  # 2000
 
     parser.add_argument('--n_gpus', type=int, default=torch.cuda.device_count())
 
@@ -363,9 +357,6 @@ def main():
     torch.manual_seed(config.random_seed)
     torch.cuda.manual_seed_all(config.random_seed)
     print(config.data_paths)
-
-    if config.load_path is not None and config.initialize_path is not None:
-        raise Exception(" [!] Only one of load_path and initialize_path should be set")
 
     if not os.path.exists(config.checkpoint_path):
         os.mkdir(config.checkpoint_path)

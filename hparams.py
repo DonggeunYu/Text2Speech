@@ -7,7 +7,7 @@ hparams = {
   "skip_path_filter": False,
   "use_lws": False,
 
-  'learning_rate': 1e-3,
+  'learning_rate': 1e-4,
   'weight_decay': 1e-6,
 
   "sample_rate": 44100,
@@ -64,7 +64,7 @@ hparams = {
 
   "wavenet_batch_size": 8,
   "store_metadata": False,
-  "num_steps": 1000000,
+  "tacotron_decay_steps": 100000,
 
   "wavenet_learning_rate": 1e-2,
   "wavenet_decay_rate": 0.5,
