@@ -17,6 +17,7 @@ from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 from utils.logger import Tacotron2Logger
 from utils import prepare_dirs, str2bool
+from utils.data_utils import TextMelCollate, TextMelLoader
 from datasets.datafeeder_tacotron import DataFeederTacotron
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -123,13 +124,13 @@ def train_init(log_dir, config, multi_speaker):
     log(' [*] Loading training data from: %s' % data_dirs)
     log(' [*] Using model: %s' % config.model_dir)  # 'logdir-tacotron\\moon_2018-08-28_13-06-42'
 
-    train_feeder = DataFeederTacotron(data_dirs, hparams, config, 32, data_type='train',
-                                      batch_size=config.batch_size)
-    test_feeder = DataFeederTacotron(data_dirs, hparams, config, 8, data_type='test', batch_size=config.num_test)
+    trainset = TextMelLoader(config.data_paths, hparams)
+    valset = TextMelLoader(config.data_paths, hparams)
+    collate_fn = TextMelCollate(hparams['n_frames_per_step'])
 
-    train_loader = DataLoader(dataset=train_feeder, batch_size=32, shuffle=False,
-                              collate_fn=collate_fn, num_workers=1, pin_memory=True)
-
+    train_loader = DataLoader(trainset, num_workers=1,
+                              batch_size=hparams['batch_size'], pin_memory=False,
+                              drop_last=True, collate_fn=collate_fn)
     num_speakers = len(config.data_paths)
     model = Tacotron(hparams, len(symbols), num_speakers=num_speakers)
 
@@ -138,7 +139,7 @@ def train_init(log_dir, config, multi_speaker):
     
     # Train!
     try:
-        train(model, train_loader, test_feeder, optimizer,
+        train(model, train_loader, valset, optimizer,
               init_lr=hparams['initial_learning_rate'],
               checkpoint_dir=config.log_dir,
               checkpoint_interval=config.checkpoint_interval,
@@ -329,7 +330,7 @@ def train(model, data_loader, test_loader, optimizer,
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_paths', default='./data/kss,./data/kss1')
+    parser.add_argument('--data_paths', default='./datasets/,./datasets/')
     parser.add_argument('--load_path', default=None)
     parser.add_argument('--checkpoint_file', default=None) #'./checkpoint_path/checkpoint_2'
     parser.add_argument('--log_dir', default='logdir-tacotron')

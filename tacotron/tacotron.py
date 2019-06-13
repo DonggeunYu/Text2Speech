@@ -66,7 +66,7 @@ class Tacotron(nn.Module):
         #B_size = mel_outputs.size(0)
         #mel_outputs = mel_outputs.view(B_size, -1, 80)
 
-        return [mel_outputs_postnet, gate_outputs, alignments]
+        return [mel_outputs, mel_outputs_postnet, gate_outputs, alignments]
 
         #return [mel_outputs, mel_outputs_postnet, gate_outputs, alignments]
 
@@ -237,7 +237,7 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, in_dim, r):
         super(Decoder, self).__init__()
-        self.n_mel_channels = hparams['num_mels']
+        self.n_mel_channels = hparams['n_mel_channels']
         self.n_frames_per_step = hparams['n_frames_per_step']
         self.encoder_embedding_dim = hparams['embedding_size']
         self.attention_rnn_dim = hparams['attention_rnn_dim']
@@ -251,7 +251,7 @@ class Decoder(nn.Module):
         self.in_dim = in_dim
         self.r = r
         self.prenet = Prenet(
-            hparams['num_mels'] * hparams['n_frames_per_step'],
+            hparams['n_mel_channels'] * hparams['n_frames_per_step'],
             [hparams['prenet_dim'], hparams['prenet_dim']])
         # (prenet_out + attention context) -> output
         self.attention_rnn = AttentionWrapper(
@@ -279,7 +279,7 @@ class Decoder(nn.Module):
 
         self.linear_projection = LinearNorm(
             hparams['decoder_rnn_dim'] + hparams['embedding_size'],
-            hparams['num_mels'] * hparams['n_frames_per_step'])
+            hparams['n_mel_channels'] * hparams['n_frames_per_step'])
 
         self.gate_layer = LinearNorm(
             hparams['decoder_rnn_dim'] + hparams['embedding_size'], 1,

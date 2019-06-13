@@ -102,7 +102,7 @@ class Postnet(nn.Module):
 
         self.convolutions.append(
             nn.Sequential(
-                ConvNorm(hparams['num_mels'], hparams['postnet_embedding_dim'],
+                ConvNorm(hparams['n_mel_channels'], hparams['postnet_embedding_dim'],
                          kernel_size=hparams['postnet_kernel_size'], stride=1,
                          padding=int((hparams['postnet_kernel_size'] - 1) / 2),
                          dilation=1, w_init_gain='tanh'),
@@ -122,11 +122,11 @@ class Postnet(nn.Module):
 
         self.convolutions.append(
             nn.Sequential(
-                ConvNorm(hparams['postnet_embedding_dim'], hparams['num_mels'],
+                ConvNorm(hparams['postnet_embedding_dim'], hparams['n_mel_channels'],
                          kernel_size=hparams['postnet_kernel_size'], stride=1,
                          padding=int((hparams['postnet_kernel_size'] - 1) / 2),
                          dilation=1, w_init_gain='linear'),
-                nn.BatchNorm1d(hparams['num_mels']))
+                nn.BatchNorm1d(hparams['n_mel_channels']))
             )
 
     def forward(self, x):

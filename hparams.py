@@ -10,12 +10,16 @@ hparams = {
   'learning_rate': 1e-4,
   'weight_decay': 1e-6,
 
+  "max_wav_value": 32768.0,
   "sample_rate": 44100,
+  "filter_length": 1024,
+  "hop_length": 256,
+  "win_length": 1024,
+  "n_mel_channels": 80,
+  "mel_fmin": 0.0,
+  "mel_fmax": 8000.0,
 
-  "hop_size": 256,
-  "fft_size": 2046,
-  "win_size": 1024,
-  "num_mels": 80,
+  "batch_size": 32,
 
   "preemphasize": False,
   "preemphasis": 0.97,
@@ -164,5 +168,5 @@ hparams = {
 }
 
 hparams["num_freq"] = 1024
-hparams['frame_shift_ms'] = hparams['hop_size'] * 1000.0/ hparams['sample_rate']      # hop_size=  sample_rate *  frame_shift_ms / 1000
-hparams['frame_length_ms'] = hparams['win_size'] * 1000.0/ hparams['sample_rate']
+hparams['frame_shift_ms'] = hparams['hop_length'] * 1000.0/ hparams['sample_rate']      # hop_size=  sample_rate *  frame_shift_ms / 1000
+hparams['frame_length_ms'] = hparams['win_length'] * 1000.0/ hparams['sample_rate']
