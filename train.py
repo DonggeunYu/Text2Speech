@@ -17,6 +17,7 @@ from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 from utils.logger import Tacotron2Logger
 from utils import prepare_dirs, str2bool
+from tacotron.loss_function import Tacotron2Loss
 from utils.data_utils import TextMelCollate, TextMelLoader
 from datasets.datafeeder_tacotron import DataFeederTacotron
 
@@ -50,7 +51,6 @@ def _pad_target(t, length):
     # t: 2 dim array. ( xx, num_mels) ==> (length,num_mels)
     return np.pad(t, [(0, length - t.shape[0]), (0,0)], mode='constant', constant_values=0)  # (169, 80) ==> (length, 80)
 
-###
 def _pad_stop_token_target(t, length):
     return np.pad(t, (0, length - t.shape[0]), mode='constant', constant_values=1)
 
@@ -65,38 +65,6 @@ def _learning_rate_decay(init_lr, global_step):
     lr = init_lr * warmup_steps**0.5 * np.minimum(
         step * warmup_steps**-1.5, step**-0.5)
     return lr
-
-def collate_fn(batch):
-    """Create batch"""
-    reduction_factor = 5
-    # batch data: (input_data, loss_coeff, mel_target, linear_target, self.data_dir_to_id[data_dir], len(linear_target))
-    inputs = _prepare_inputs([x[0] for x in batch])  # batch에 있는 data들 중, 가장 긴 data의 길이에 맞게 padding한다.
-    inputs = torch.LongTensor(inputs)
-
-    input_lengths = np.asarray([len(x[0]) for x in batch])  # batch_size, [37, 37, 32, 32, 38,..., 39, 36, 30]
-    input_lengths = torch.from_numpy(input_lengths)
-
-    loss_coeff = np.asarray([x[1] for x in batch], dtype=np.float32)  # batch_size, [1,1,1,,..., 1,1,1]
-    loss_coeff = torch.LongTensor(loss_coeff)
-
-    mel_targets = _prepare_targets([x[2] for x in batch],
-                                   reduction_factor)  # ---> (32, 175, 80) max length는 reduction_factor의  배수가 되도록
-    mel_targets = torch.FloatTensor(mel_targets)
-
-    linear_targets = _prepare_targets([x[3] for x in batch],
-                                      reduction_factor)  # ---> (32, 175, 1025)  max length는 reduction_factor의  배수가 되도록
-    linear_targets = torch.FloatTensor(linear_targets)
-
-    stop_token_targets = _prepare_stop_token_targets([x[4] for x in batch], reduction_factor)
-    stop_token_targets = torch.LongTensor(stop_token_targets)
-
-    if len(batch[0]) == 7:  # is_multi_speaker = True인 경우
-        speaker_id = np.asarray([x[5] for x in batch], dtype=np.int32)  # speaker_id로 list 만들기
-        speaker_id = torch.LongTensor(speaker_id)
-        return (inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_targets, speaker_id)
-    else:
-        return (inputs, input_lengths, loss_coeff, mel_targets,
-                linear_targets, stop_token_targets)
 
 def save_checkpoint(model, optimizer, learning_rate, iteration, filepath):
     print("Saving model and optimizer state at iteration {} to {}".format(
@@ -124,11 +92,11 @@ def train_init(log_dir, config, multi_speaker):
     log(' [*] Loading training data from: %s' % data_dirs)
     log(' [*] Using model: %s' % config.model_dir)  # 'logdir-tacotron\\moon_2018-08-28_13-06-42'
 
-    trainset = TextMelLoader(config.data_paths, hparams)
-    valset = TextMelLoader(config.data_paths, hparams)
+    trainset = TextMelLoader(config.data_paths, hparams, 'train')
+    valset = TextMelLoader(config.data_paths, hparams, 'val')
     collate_fn = TextMelCollate(hparams['n_frames_per_step'])
 
-    train_loader = DataLoader(trainset, num_workers=1,
+    train_loader = DataLoader(trainset, num_workers=0, shuffle=True,
                               batch_size=hparams['batch_size'], pin_memory=False,
                               drop_last=True, collate_fn=collate_fn)
     num_speakers = len(config.data_paths)
@@ -136,7 +104,7 @@ def train_init(log_dir, config, multi_speaker):
 
     optimizer = optim.Adam(model.parameters(), lr=hparams['initial_learning_rate'],
                            betas=(hparams['adam_beta1'], hparams['adam_beta2']))
-    
+
     # Train!
     try:
         train(model, train_loader, valset, optimizer,
@@ -145,7 +113,8 @@ def train_init(log_dir, config, multi_speaker):
               checkpoint_interval=config.checkpoint_interval,
               nepochs=hparams['tacotron_decay_steps'],
               clip_thresh=1.0,
-              config=config, multi_speaker=multi_speaker)
+              config=config, multi_speaker=multi_speaker,
+              collate_fn=collate_fn)
     except KeyboardInterrupt:
         save_checkpoint(
             model, optimizer, global_step, config.log_dir, global_epoch)
@@ -177,50 +146,31 @@ def validate(model, criterion, valset, iteration, batch_size,
              collate_fn, logger, multi_speaker):
     """Handles all the validation scoring and printing"""
     model.eval()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     n_priority_freq = int(3000 / (hparams['sample_rate'] * 0.5) * hparams['num_freq'])
 
     with torch.no_grad():
-        val_loader = DataLoader(valset, num_workers=1,
+        val_loader = DataLoader(valset, num_workers=0,
                                 shuffle=False, batch_size=batch_size,
                                 pin_memory=False, collate_fn=collate_fn)
 
         val_loss = 0.0
-        for i, (inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id) in enumerate(val_loader):
-            inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
-                inputs.to(device), loss_coeff.to(device), mel_targets.to(device), \
-                linear_targets.to(device), stop_token_target.to(device), speaker_id.to(device)
-
-            sorted_lengths, indices = torch.sort(
-                input_lengths.view(-1), dim=0, descending=True)
-            sorted_lengths = sorted_lengths.long().numpy()
-            sorted_lengths = torch.LongTensor(sorted_lengths)
-            sorted_lengths = sorted_lengths.to(device)
-            sorted_lengths = Variable(sorted_lengths)
-
-            inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
-                inputs[indices], loss_coeff[indices], mel_targets[indices], \
-                linear_targets[indices], stop_token_target[indices], speaker_id[indices]
-            inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
-                Variable(inputs), Variable(loss_coeff), Variable(mel_targets), \
-                Variable(linear_targets), Variable(stop_token_target), Variable(speaker_id)
-            y_pred = model(multi_speaker, inputs, sorted_lengths, loss_coeff, mel_targets, linear_targets,
-                           stop_token_target, speaker_id)
-
-            loss = criterion(y_pred[0], mel_targets)
-            loss = loss.item()
-            val_loss += loss
+        for i, batch in enumerate(val_loader):
+            x, y = model.parse_batch(batch)
+            y_pred = model(x)
+            loss = criterion(y_pred, y)
+            reduced_val_loss = loss.item()
+            val_loss += reduced_val_loss
         val_loss = val_loss / (i + 1)
 
     model.train()
     print("Validation loss {:9f}  ".format(loss))
-    logger.log_validation(loss, model, (mel_targets, linear_targets), y_pred, iteration)
+    logger.log_validation(reduced_val_loss, model, y, y_pred, iteration)
 
 def train(model, data_loader, test_loader, optimizer,
           init_lr=0.002,
           checkpoint_dir=None, checkpoint_interval=None, nepochs=None,
-          clip_thresh=1.0, config=None, multi_speaker=None):
+          clip_thresh=1.0, config=None, multi_speaker=None, collate_fn=None):
     iteration = 0
     epoch_offset = 0
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -241,11 +191,7 @@ def train(model, data_loader, test_loader, optimizer,
     model.train()
     model.to(device)
 
-    #if torch.cuda.device_count() > 1:
-        #print("Use", torch.cuda.device_count(), "GPUs")
-        #model = nn.DataParallel(model)
-
-    criterion = nn.L1Loss()
+    criterion = Tacotron2Loss()
 
     logger = prepare_directories_and_logger(
         config.logger_path)
@@ -259,45 +205,21 @@ def train(model, data_loader, test_loader, optimizer,
         for epoch in range(epoch_offset, nepochs):
             print("Epoch: {}".format(epoch))
             running_loss = 0.
-            for step, (inputs, input_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)\
-                    in enumerate(data_loader):
+            for batch in data_loader:
                 start = time.perf_counter()
                 current_lr = _learning_rate_decay(init_lr, iteration)
 
-                inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
-                    inputs.to(device), loss_coeff.to(device), mel_targets.to(device), \
-                    linear_targets.to(device), stop_token_target.to(device), speaker_id.to(device)
 
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = current_lr
 
                 optimizer.zero_grad()
+                model.zero_grad()
 
-                # Sort batch data by input_lengths
-                sorted_lengths, indices = torch.sort(
-                    input_lengths.view(-1), dim=0, descending=True)
-                sorted_lengths = sorted_lengths.long().numpy()
-                sorted_lengths = torch.LongTensor(sorted_lengths)
-                sorted_lengths = sorted_lengths.to(device)
-                sorted_lengths = Variable(sorted_lengths)
+                x, y = model.parse_batch(batch)
+                y_pred = model(x)
 
-                inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
-                    inputs[indices], loss_coeff[indices], mel_targets[indices],\
-                    linear_targets[indices], stop_token_target[indices], speaker_id[indices]
-                inputs, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id = \
-                    Variable(inputs), Variable(loss_coeff), Variable(mel_targets), \
-                    Variable(linear_targets), Variable(stop_token_target), Variable(speaker_id)
-                y_pred = model(multi_speaker, inputs, sorted_lengths, loss_coeff, mel_targets, linear_targets, stop_token_target, speaker_id)
-
-                # Loss
-                #mel_loss = criterion(y_pred[0], mel_targets)
-                #print(np.shape(y_pred[1]), np.shape(linear_targets))
-                #linear_loss = criterion(y_pred[1], linear_targets)
-                #loss = mel_loss + linear_loss
-                #loss = loss.to(devicse)
-                #loss.backward()
-                loss = criterion(y_pred[0], mel_targets)
-                loss = loss.to(device)
+                loss = criterion(y_pred, y)
                 loss.backward()
 
                 optimizer.step()
@@ -311,26 +233,23 @@ def train(model, data_loader, test_loader, optimizer,
 
                 iteration += 1
 
-            logger.log_training(
-                loss, grad_norm, learning_rate, duration, iteration)
+                logger.log_training(
+                    loss, grad_norm, learning_rate, duration, iteration)
 
-            if (epoch % config.checkpoint_interval == 0):
-                checkpoint_path = os.path.join(
-                    config.checkpoint_path, "checkpoint_{}".format(epoch))
-                save_checkpoint(model, optimizer, learning_rate, epoch,
+                if (iteration % config.checkpoint_interval == 0):
+                    checkpoint_path = os.path.join(
+                        config.checkpoint_path, "checkpoint_{}".format(iteration))
+                    save_checkpoint(model, optimizer, learning_rate, iteration,
                                 checkpoint_path)
 
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    model.parameters(), 1.0)
-
-                validate(model, criterion, test_loader, iteration,
-                         config.batch_size, collate_fn, logger, multi_speaker)
+                    validate(model, criterion, test_loader, iteration,
+                            config.batch_size, collate_fn, logger, multi_speaker)
 
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_paths', default='./datasets/,./datasets/')
+    parser.add_argument('--data_paths', default='./datasets/kss/,./datasets/kss/')
     parser.add_argument('--load_path', default=None)
     parser.add_argument('--checkpoint_file', default=None) #'./checkpoint_path/checkpoint_2'
     parser.add_argument('--log_dir', default='logdir-tacotron')
@@ -343,7 +262,7 @@ def main():
     parser.add_argument('--random_seed', type=int, default=123)
     parser.add_argument('--skip_path_filter', type=str2bool, default=False, help='Use only for debugging')
 
-    parser.add_argument('--checkpoint_interval', type=int, default=100)  # 2000
+    parser.add_argument('--checkpoint_interval', type=int, default=1000)  # 2000
 
     parser.add_argument('--n_gpus', type=int, default=torch.cuda.device_count())
 

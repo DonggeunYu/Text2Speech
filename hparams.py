@@ -11,7 +11,7 @@ hparams = {
   'weight_decay': 1e-6,
 
   "max_wav_value": 32768.0,
-  "sample_rate": 44100,
+  "sample_rate": 44800,
   "filter_length": 1024,
   "hop_length": 256,
   "win_length": 1024,

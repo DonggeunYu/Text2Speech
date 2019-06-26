@@ -4,6 +4,7 @@ from .modules import *
 from .attention import BahdanauAttention, AttentionWrapper
 from torch.autograd import Variable
 from hparams import hparams
+from utils.data_utils import to_gpu
 
 
 manualSeed = 999
@@ -33,56 +34,26 @@ class Tacotron(nn.Module):
         self.postnet = Postnet(hparams)
         self.postnet_linear = nn.Linear(80, 1024)
 
-    def forward(self, num_speakers, inputs, input_lengths, loss_coeff, mel_targets=None, linear_targets=None, stop_token_targets=None, speaker_id=None):
-        self.num_speakers = num_speakers.size(0)
-        # (B, T', in_dim)
-        embedded_inputs = self.embedding(inputs).transpose(1, 2)
-        embedded_inputs = embedded_inputs.contiguous()
-        B_size = embedded_inputs.size(0)
-        embedded_inputs = embedded_inputs.view(B_size, -1)
+    def forward(self, inputs):
+        text_inputs, text_lengths, mels, max_len, output_lengths, speaker_id = inputs
+        text_lengths, output_lengths = text_lengths.data, output_lengths.data
 
-        speaker_embed = self.speaker_embed_table(speaker_id)
-        speaker_embed = self.deep_linear(speaker_embed)
-        speaker_embed = speaker_embed.view(speaker_embed.size(0), -1)
-        embed = torch.cat([embedded_inputs, speaker_embed], 1).view(B_size, 512, -1)
+        embedded_inputs = self.embedding(text_inputs).transpose(1, 2)
+        encoder_outputs = self.encoder(embedded_inputs, text_lengths)
 
-        encoder_outputs = self.encoder(embed, input_lengths)
-
-        # (B, T', mel_dim*r)
         mel_outputs, gate_outputs, alignments = self.decoder(
-            encoder_outputs, mel_targets, memory_lengths=input_lengths)
+            encoder_outputs, mels, text_lengths)
 
-        # Post net processing below
         mel_outputs_postnet = self.postnet(mel_outputs)
         mel_outputs_postnet = mel_outputs + mel_outputs_postnet
 
-        B_size = mel_outputs_postnet.size(0)
-        mel_outputs_postnet = mel_outputs_postnet.view(B_size, -1, 80)
-
-        #mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
-        #mel_outputs_postnet = self.postnet_linear(mel_outputs_postnet)
-
-        #mel_outputs = mel_outputs.contiguous()
-        #B_size = mel_outputs.size(0)
-        #mel_outputs = mel_outputs.view(B_size, -1, 80)
-
-        return [mel_outputs, mel_outputs_postnet, gate_outputs, alignments]
-
-        #return [mel_outputs, mel_outputs_postnet, gate_outputs, alignments]
+        return self.parse_output([mel_outputs, mel_outputs_postnet, gate_outputs, alignments], output_lengths)
 
     def inference(self, inputs, speaker_id):
         # (B, T', in_dim)
         embedded_inputs = self.embedding(inputs).transpose(1, 2)
-        embedded_inputs = embedded_inputs.contiguous()
-        B_size = embedded_inputs.size(0)
-        embedded_inputs = embedded_inputs.view(B_size, -1)
 
-        speaker_embed = self.speaker_embed_table(speaker_id)
-        speaker_embed = self.deep_linear(speaker_embed)
-        speaker_embed = speaker_embed.view(speaker_embed.size(0), -1)
-        embed = torch.cat([embedded_inputs, speaker_embed], 1).view(B_size, 512, -1)
-
-        encoder_outputs = self.encoder.inference(embed)
+        encoder_outputs = self.encoder.inference(embedded_inputs)
 
         # (B, T', mel_dim*r)
         mel_outputs, gate_outputs, alignments = self.decoder.inference(
@@ -92,19 +63,31 @@ class Tacotron(nn.Module):
         mel_outputs_postnet = self.postnet(mel_outputs)
         mel_outputs_postnet = mel_outputs + mel_outputs_postnet
 
-        B_size = mel_outputs_postnet.size(0)
-        mel_outputs_postnet = mel_outputs_postnet.view(B_size, -1, 80)
+        return self.parse_output([mel_outputs, mel_outputs_postnet, gate_outputs, alignments])
 
-        #mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
-        #mel_outputs_postnet = self.postnet_linear(mel_outputs_postnet)
+    def parse_output(self, outputs, output_lengths=None):
+        if hparams['mask_padding'] and output_lengths is not None:
+            mask = ~get_mask_from_lengths(output_lengths)
+            mask = mask.expand(hparams['n_mel_channels'], mask.size(0), mask.size(1))
+            mask = mask.permute(1, 0, 2)
 
-        #mel_outputs = mel_outputs.contiguous()
-        #B_size = mel_outputs.size(0)
-        #mel_outputs = mel_outputs.view(B_size, -1, 80)
+            outputs[0].data.masked_fill_(mask, 0.0)
+            outputs[1].data.masked_fill_(mask, 0.0)
+            outputs[2].data.masked_fill_(mask[:, 0, :], 1e3)
+        return outputs
 
-        return [mel_outputs_postnet, gate_outputs, alignments]
+    def parse_batch(self, batch):
+        text_padded, input_lengths, mel_padded, gate_padded, speaker_id, output_lengths = batch
+        text_padded = to_gpu(text_padded).long()
+        input_lengths = to_gpu(input_lengths).long()
+        max_len = torch.max(input_lengths.data).item()
+        mel_padded = to_gpu(mel_padded).float()
+        gate_padded = to_gpu(gate_padded).float()
+        speaker_id = to_gpu(speaker_id).float()
+        output_lengths = to_gpu(output_lengths).long()
 
-        #return [mel_outputs, mel_outputs_postnet, gate_outputs, alignments]
+        return ((text_padded, input_lengths, mel_padded, max_len, output_lengths, speaker_id),
+                (mel_padded, gate_padded))
 
 class LocationLayer(nn.Module):
     def __init__(self, attention_n_filters, attention_kernel_size,
@@ -344,6 +327,7 @@ class Decoder(nn.Module):
         inputs: processed decoder inputs
         """
         # input shape: (B, T_out, n_mel_channels)
+        decoder_inputs = decoder_inputs.transpose(1, 2)
         decoder_inputs = decoder_inputs.view(
             decoder_inputs.size(0),
             int(decoder_inputs.size(1)/self.n_frames_per_step), -1)
@@ -394,7 +378,7 @@ class Decoder(nn.Module):
         gate_prediction = self.gate_layer(decoder_hidden_attention_context)
         return decoder_output, gate_prediction, self.attention_weights
 
-    def forward(self, encoder_outputs, inputs=None, memory_lengths=None):
+    def forward(self, memory, decoder_inputs, memory_lengths=None):
         """
         Decoder forward step.
         If decoder inputs are not given (e.g., at testing time), as noted in
@@ -406,19 +390,17 @@ class Decoder(nn.Module):
             memory_lengths: Encoder output (memory) lengths. If not None, used for
               attention masking.
         """
-        B = encoder_outputs.size(0)
-
-        decoder_input = self.get_go_frame(encoder_outputs).unsqueeze(0)
-        inputs = self.parse_decoder_inputs(inputs)
-        inputs = torch.cat((decoder_input, inputs), dim=0)
-        inputs = self.prenet(inputs)
+        decoder_input = self.get_go_frame(memory).unsqueeze(0)
+        decoder_inputs = self.parse_decoder_inputs(decoder_inputs)
+        decoder_inputs = torch.cat((decoder_input, decoder_inputs), dim=0)
+        decoder_inputs = self.prenet(decoder_inputs)
 
         self.initialize_decoder_states(
-            encoder_outputs, mask=~get_mask_from_lengths(memory_lengths))
+            memory, mask=~get_mask_from_lengths(memory_lengths))
 
         mel_outputs, gate_outputs, alignments = [], [], []
-        while len(mel_outputs) < inputs.size(0) - 1:
-            decoder_input = inputs[len(mel_outputs)]
+        while len(mel_outputs) < decoder_inputs.size(0) - 1:
+            decoder_input = decoder_inputs[len(mel_outputs)]
             mel_output, gate_output, attention_weights = self.decode(
                 decoder_input)
             mel_outputs += [mel_output.squeeze(1)]

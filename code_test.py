@@ -2,11 +2,9 @@ import torch
 from torch import nn
 import numpy as np
 
-a = torch.randn(32, 512, 11)
-b = torch.randn(32, 512)
-a = a.view(a.size(0), -1)
-b = b.view(b.size(0), -1)
-a = a.cuda()
-b = b.cuda()
-c = torch.cat([a, b], 1).view(32, 512, -1)
-print(np.shape(c))
+from text import text_to_sequence
+
+a = '안녕하세요'
+b = '요안'
+print(text_to_sequence(a))
+print(text_to_sequence(b))

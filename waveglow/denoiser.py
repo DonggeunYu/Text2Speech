@@ -1,7 +1,7 @@
 import sys
 sys.path.append('tacotron2')
 import torch
-from layers import STFT
+from utils.layers import STFT
 
 
 class Denoiser(torch.nn.Module):

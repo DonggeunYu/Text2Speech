@@ -10,6 +10,7 @@ import librosa
 import matplotlib.pyplot as plt
 import IPython.display as ipd
 import sys
+import soundfile as sf
 
 from hparams import hparams
 from tacotron.tacotron import Tacotron
@@ -40,12 +41,12 @@ def plot_data(data, figsize=(16, 4)):
     for i in range(len(data)):
         axes[i].imshow(data[i], aspect='auto', origin='bottom',
                        interpolation='none')
-
+    plt.show()
 
 # In[3]:
 
 
-checkpoint_path = './checkpoint_path/checkpoint_400'
+checkpoint_path = './checkpoint_path/checkpoint_10000'
 waveglow_path = 'waveglow/waveglow_256channels.pt'
 num_speakers = 2
 speaker_id = 0
@@ -82,18 +83,13 @@ speaker_id = np.array([speaker_id])
 speaker_id = speaker_id.reshape(speaker_id.shape[0], -1)
 
 speaker_id = torch.autograd.Variable(torch.from_numpy(speaker_id)).cuda().long()
-mel_outputs_postnet, _, alignments = model.inference(sequence, speaker_id)
-print(np.shape(mel_outputs_postnet))
-mel_outputs_postnet = mel_outputs_postnet.transpose(1, 2)
-plot_data((mel_outputs_postnet.float().data.cpu().numpy()[0],
+mel_outputs, mel_outputs_postnet, _, alignments = model.inference(sequence, speaker_id)
+plot_data((mel_outputs.float().data.cpu().numpy()[0],
+           mel_outputs_postnet.float().data.cpu().numpy()[0],
            alignments.float().data.cpu().numpy()[0].T))
 
-# In[ ]:
-
-
+import soundfile as sf
 with torch.no_grad():
     audio = waveglow.infer(mel_outputs_postnet, sigma=0.666)
-wav = audio[0].data.cpu().numpy()
-ipd.Audio(wav, rate=22050)
-librosa.output.write_wav('tone_440.wav', wav, 22050)
+sf.write('tone_440.wav', audio[0].float().data.cpu().numpy(), hparams['sample_rate'], format='WAV', endian='LITTLE', subtype='PCM_16') # 깨지지 않음
 print(np.shape(audio))
