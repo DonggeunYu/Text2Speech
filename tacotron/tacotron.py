@@ -35,7 +35,7 @@ class Tacotron(nn.Module):
         self.postnet_linear = nn.Linear(80, 1024)
 
     def forward(self, inputs):
-        text_inputs, text_lengths, mels, max_len, output_lengths, speaker_id = inputs
+        text_inputs, text_lengths, mels, max_len, speaker_id, output_lengths = inputs
         text_lengths, output_lengths = text_lengths.data, output_lengths.data
 
         embedded_inputs = self.embedding(text_inputs).transpose(1, 2)
