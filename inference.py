@@ -46,7 +46,7 @@ def plot_data(data, figsize=(16, 4)):
 # In[3]:
 
 
-checkpoint_path = './checkpoint_path/checkpoint_10000'
+checkpoint_path = './checkpoint_path/checkpoint_30000'
 waveglow_path = 'waveglow/waveglow_256channels.pt'
 num_speakers = 2
 speaker_id = 0
@@ -54,8 +54,9 @@ text = "설문을 만들었습니다."
 
 # In[4]:
 
+cuda1 = torch.device('cuda:1')
 
-model = Tacotron(hparams, len(symbols), num_speakers=num_speakers).cuda()
+model = Tacotron(hparams, len(symbols), num_speakers=num_speakers).cuda(1)
 model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
 _ = model.cuda().eval().half()
 
