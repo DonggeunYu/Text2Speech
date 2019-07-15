@@ -1,6 +1,6 @@
 # Text2Speech
 
-제작중임...
+제작중입니다. README.md는 메모만 했습니다.
 
 Text to Speech로 text를 음성으로 변환해주는 기술이다. Text to Speech 기술은 크게 Google의 Tacotron, Baidu의 Deep Voice가 양대산맥 형태를 이루고 있습니다. 이들 중 Tacotron-2를 Base Model로 개발하기로 했습니다.
 
@@ -25,7 +25,7 @@ Text to Speech로 text를 음성으로 변환해주는 기술이다. Text to Spe
 
 
 
-####Trim lead/trail silences
+#### Trim lead/trail silences
 
 wav의 앞과 뒤의 침묵을 다듬는다.
 
